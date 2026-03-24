@@ -28,5 +28,25 @@ export function validateEnvironment(
     validated.REDIS_PASSWORD = redisPassword;
   }
 
+  const jwtAccessSecret = config.JWT_ACCESS_SECRET;
+  if (typeof jwtAccessSecret === 'string') {
+    validated.JWT_ACCESS_SECRET = jwtAccessSecret;
+  }
+
+  const jwtVerifySecret = config.JWT_VERIFY_SECRET;
+  if (typeof jwtVerifySecret === 'string') {
+    validated.JWT_VERIFY_SECRET = jwtVerifySecret;
+  }
+
+  const jwtAccessExpiresInSeconds = config.JWT_ACCESS_EXPIRES_IN_SECONDS;
+  if (typeof jwtAccessExpiresInSeconds === 'string') {
+    validated.JWT_ACCESS_EXPIRES_IN_SECONDS = jwtAccessExpiresInSeconds;
+  }
+
+  const jwtVerifyExpiresInSeconds = config.JWT_VERIFY_EXPIRES_IN_SECONDS;
+  if (typeof jwtVerifyExpiresInSeconds === 'string') {
+    validated.JWT_VERIFY_EXPIRES_IN_SECONDS = jwtVerifyExpiresInSeconds;
+  }
+
   return validated;
 }

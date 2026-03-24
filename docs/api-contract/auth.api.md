@@ -10,9 +10,8 @@
 
 - UC-1: User Registration
 - UC-2: User Authentication (Login)
-- UC-3: User Logout
+- UC-2.1: Email Verification
 - UC-4: Reset Password
-- UC-5: Manage Profile
 
 ## Endpoint 1: Register User
 
@@ -93,43 +92,45 @@
 
 - 400 Bad Request: malformed credentials payload.
 - 401 Unauthorized: invalid credentials.
-- 403 Forbidden: account state disallows login.
+- 403 Forbidden: account state disallows login (e.g., email not verified).
 - 500 Internal Server Error: token generation or logging failure.
 
-## Endpoint 3: Logout
+## Endpoint 3: Verify Email
 
 ### Endpoint
 
 - Method: POST
-- URL: /auth/logout
-- Description: Terminate current authenticated session.
+- URL: /auth/verify-email
+- Description: Verify user email using verification token.
 
 ### Request DTO
 
-#### CreateAuthLogoutRequestDto
+#### CreateVerifyEmailRequestDto
 
-| Field        | Type   | Required | Validation                                                 |
-| ------------ | ------ | -------- | ---------------------------------------------------------- |
-| refreshToken | string | No       | optional if server uses token blacklist/invalidation store |
+| Field | Type   | Required | Validation                          |
+| ----- | ------ | -------- | ----------------------------------- |
+| token | string | Yes      | non-empty; valid verification token |
 
 ### Response DTO
 
-#### AuthLogoutResponseDto
+#### VerifyEmailResponseDto
 
-| Field   | Type    | Description                  |
-| ------- | ------- | ---------------------------- |
-| success | boolean | Logout operation result      |
-| message | string  | Human-readable logout status |
+| Field   | Type    | Description         |
+| ------- | ------- | ------------------- |
+| success | boolean | Verification result |
+| message | string  | Verification status |
 
 ### Business Rules Mapping
 
-- BR-3: logout endpoint requires JWT authentication.
-- BR-4: token invalidation/expiry policy applied on session close.
+- BR-1: verification token must be valid and non-expired.
+- BR-2: user account marked as verified on success.
+- BR-3: verification token invalidated after use.
 
 ### Error Cases
 
-- 401 Unauthorized: missing or invalid access token.
-- 500 Internal Server Error: session invalidation failure.
+- 400 Bad Request: invalid or expired token.
+- 404 Not Found: token does not correspond to user.
+- 500 Internal Server Error: verification update failure.
 
 ## Endpoint 4: Request Password Reset
 
@@ -204,83 +205,9 @@
 - 404 Not Found: token does not map to user.
 - 500 Internal Server Error: password update failure.
 
-## Endpoint 6: Get Current Profile
-
-### Endpoint
-
-- Method: GET
-- URL: /profile
-- Description: Retrieve profile of currently authenticated user.
-
-### Request DTO
-
-- None (JWT principal required).
-
-### Response DTO
-
-#### UserProfileResponseDto
-
-| Field       | Type                | Description                |
-| ----------- | ------------------- | -------------------------- |
-| id          | uuid string         | User identifier            |
-| email       | string              | Account email              |
-| displayName | string              | Profile display name       |
-| avatarUrl   | string nullable     | Avatar URL                 |
-| createdAt   | ISO datetime string | Account creation timestamp |
-
-### Business Rules Mapping
-
-- BR-3: JWT required.
-- BR-5: users can only access their own profile context.
-
-### Error Cases
-
-- 401 Unauthorized: invalid or missing JWT.
-- 404 Not Found: user profile not found.
-
-## Endpoint 7: Update Current Profile
-
-### Endpoint
-
-- Method: PUT
-- URL: /profile
-- Description: Update non-critical profile fields for authenticated user.
-
-### Request DTO
-
-#### UpdateProfileRequestDto
-
-| Field       | Type   | Required | Validation                   |
-| ----------- | ------ | -------- | ---------------------------- |
-| displayName | string | No       | min length 1; max length 100 |
-| avatarUrl   | string | No       | valid URL; max length 1024   |
-
-### Response DTO
-
-#### UserProfileResponseDto
-
-| Field       | Type                | Description              |
-| ----------- | ------------------- | ------------------------ |
-| id          | uuid string         | User identifier          |
-| email       | string              | Account email            |
-| displayName | string              | Updated profile name     |
-| avatarUrl   | string nullable     | Updated avatar URL       |
-| updatedAt   | ISO datetime string | Profile update timestamp |
-
-### Business Rules Mapping
-
-- BR-3: JWT required.
-- BR-5: users can only update their own profile.
-
-### Error Cases
-
-- 400 Bad Request: invalid displayName or avatarUrl.
-- 401 Unauthorized: invalid or missing JWT.
-- 404 Not Found: user profile not found.
-
 ## Self Review
 
-- All auth use-cases UC-1 to UC-5 are covered.
+- All auth use-cases UC-1, UC-2, UC-2.1, UC-4 are covered.
 - No duplicated endpoints in this feature contract.
 - Validation constraints map to business rules and database lengths.
 - Naming is consistent with CreateXRequestDto, UpdateXRequestDto, XResponseDto pattern.
