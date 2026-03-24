@@ -1,0 +1,28 @@
+@startuml
+autonumber
+actor User
+participant "Web UI" as UI
+participant "Reminder Controller" as Controller
+participant "Reminder Service" as Service
+participant "Reminder Repository" as Repo
+database "Database" as DB
+participant "Notification Service" as Notify
+
+User -> UI: Click Snooze on reminder notification
+UI -> Controller: POST /reminders/{id}/snooze
+Controller -> Service: snoozeReminder(reminderId, duration)
+Service -> Repo: findReminderById(reminderId)
+Repo -> DB: SELECT reminder by id
+DB --> Repo: Reminder data
+Repo --> Service: Reminder data
+Service -> Service: Compute next trigger time
+Service -> Repo: updateNextTrigger(reminderId, nextTriggerAt)
+Repo -> DB: UPDATE reminder next_trigger_at
+DB --> Repo: Reminder updated
+Repo --> Service: Persisted
+Service -> Notify: rescheduleReminderNotification(reminderId, nextTriggerAt)
+Notify --> Service: Reschedule confirmed
+Service --> Controller: 200 Snoozed successfully
+Controller --> UI: Success response
+UI --> User: Hide current alert and show snoozed state
+@enduml

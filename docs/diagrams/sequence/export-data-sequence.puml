@@ -1,0 +1,29 @@
+@startuml
+autonumber
+actor User
+participant "Web UI" as UI
+participant "Export Controller" as Controller
+participant "Export Service" as Service
+participant "Export Repository" as Repo
+database "Database" as DB
+
+User -> UI: Choose export filters and click Export CSV
+UI -> Controller: GET /appointments/export?dateRange&tag&status
+Controller -> Service: exportAppointments(filters)
+Service -> Service: Validate filter parameters
+Service -> Repo: findForExport(userId, filters)
+Repo -> DB: SELECT filtered appointments
+DB --> Repo: Appointment dataset
+Repo --> Service: Appointment dataset
+
+alt No records
+  Service --> Controller: 404 No data to export
+  Controller --> UI: Error response
+  UI --> User: Show no data message
+else Records found
+  Service -> Service: Transform dataset to CSV
+  Service --> Controller: 200 CSV file stream
+  Controller --> UI: File download response
+  UI --> User: Download appointments.csv
+end
+@enduml

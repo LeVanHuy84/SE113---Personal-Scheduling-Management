@@ -1,0 +1,44 @@
+@startuml
+autonumber
+actor User
+participant "Web UI" as UI
+participant "Appointment Controller" as Controller
+participant "Appointment Service" as Service
+participant "Appointment Repository" as Repo
+database "Database" as DB
+
+User -> UI: Edit appointment and click Save
+UI -> Controller: PUT /appointments/{id}
+Controller -> Service: updateAppointment(id, payload)
+Service -> Repo: findById(id)
+Repo -> DB: SELECT appointment by id
+DB --> Repo: Current appointment
+Repo --> Service: Current appointment
+Service -> Service: Validate updated values
+Service -> Repo: checkOverlaps(userId, newTimeRange)
+Repo -> DB: SELECT overlapping appointments
+DB --> Repo: Conflict/no conflict
+Repo --> Service: Conflict flag
+
+alt Invalid update or conflict
+  Service --> Controller: 400/409 Error
+  Controller --> UI: Error response
+  UI --> User: Show update failure reason
+else Recurring appointment update
+  Service -> Repo: updateRecurringScope(id, payload, scope)
+  Repo -> DB: UPDATE recurring series/instance
+  DB --> Repo: Series updated
+  Repo --> Service: Persisted
+  Service --> Controller: 200 Update successful
+  Controller --> UI: Success response
+  UI --> User: Refresh calendar entry
+else Single appointment update
+  Service -> Repo: updateAppointment(id, payload)
+  Repo -> DB: UPDATE appointment
+  DB --> Repo: Record updated
+  Repo --> Service: Persisted
+  Service --> Controller: 200 Update successful
+  Controller --> UI: Success response
+  UI --> User: Refresh appointment details
+end
+@enduml

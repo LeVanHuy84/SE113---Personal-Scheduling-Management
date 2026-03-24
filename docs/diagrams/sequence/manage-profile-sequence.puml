@@ -1,0 +1,28 @@
+@startuml
+autonumber
+actor User
+participant "Web UI" as UI
+participant "Profile Controller" as Controller
+participant "Profile Service" as Service
+participant "Profile Repository" as Repo
+database "Database" as DB
+
+User -> UI: Edit profile fields and save
+UI -> Controller: PUT /profile
+Controller -> Service: updateProfile(payload)
+Service -> Service: Validate payload
+
+alt Validation error
+  Service --> Controller: 400 Invalid input
+  Controller --> UI: Error response
+  UI --> User: Highlight invalid fields
+else Valid profile update
+  Service -> Repo: updateProfile(userId, payload)
+  Repo -> DB: UPDATE user profile
+  DB --> Repo: Update successful
+  Repo --> Service: Updated entity
+  Service --> Controller: 200 Profile updated
+  Controller --> UI: Success response
+  UI --> User: Show confirmation
+end
+@enduml

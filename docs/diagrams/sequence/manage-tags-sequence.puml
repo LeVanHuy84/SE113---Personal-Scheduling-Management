@@ -1,0 +1,55 @@
+@startuml
+autonumber
+actor User
+participant "Web UI" as UI
+participant "Tag Controller" as Controller
+participant "Tag Service" as Service
+participant "Tag Repository" as Repo
+database "Database" as DB
+
+alt Create tag
+  User -> UI: Enter tag name/color and save
+  UI -> Controller: POST /tags
+  Controller -> Service: createTag(payload)
+  Service -> Repo: existsByName(userId, name)
+  Repo -> DB: SELECT tag by name
+  DB --> Repo: Exists?/not exists
+  Repo --> Service: Exists flag
+
+  alt Duplicate name
+    Service --> Controller: 409 Duplicate tag
+    Controller --> UI: Error response
+    UI --> User: Show duplicate name warning
+  else Valid new tag
+    Service -> Repo: createTag(payload)
+    Repo -> DB: INSERT tag
+    DB --> Repo: Tag created
+    Repo --> Service: Created tag
+    Service --> Controller: 201 Tag created
+    Controller --> UI: Success response
+    UI --> User: Show new tag in list
+  end
+else Rename tag
+  User -> UI: Rename selected tag
+  UI -> Controller: PUT /tags/{id}
+  Controller -> Service: renameTag(id, newName)
+  Service -> Repo: renameTagAndPropagate(id, newName)
+  Repo -> DB: UPDATE tag and linked appointment labels
+  DB --> Repo: Tag renamed
+  Repo --> Service: Persisted
+  Service --> Controller: 200 Tag updated
+  Controller --> UI: Success response
+  UI --> User: Refresh tag labels
+else Delete tag
+  User -> UI: Confirm delete tag
+  UI -> Controller: DELETE /tags/{id}
+  Controller -> Service: deleteTag(id)
+  Service -> Repo: removeFromAppointmentsAndDelete(id)
+  Repo -> DB: UPDATE appointments + DELETE tag
+  DB --> Repo: Delete completed
+  Repo --> Service: Persisted
+  Service --> Controller: 200 Tag deleted
+  Controller --> UI: Success response
+  UI --> User: Remove tag from list
+end
+@enduml

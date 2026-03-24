@@ -1,0 +1,35 @@
+@startuml
+autonumber
+actor User
+participant "Web UI" as UI
+participant "Auth Controller" as Controller
+participant "Auth Service" as Service
+participant "Auth Repository" as Repo
+database "Database" as DB
+participant "Notification Service" as Notify
+
+User -> UI: Fill registration form and click Register
+UI -> Controller: POST /auth/register
+Controller -> Service: registerUser(payload)
+Service -> Repo: existsByEmail(email)
+Repo -> DB: SELECT by email
+DB --> Repo: Existing user / no row
+Repo --> Service: Exists?/not exists
+
+alt Email already exists
+  Service --> Controller: 409 Email already registered
+  Controller --> UI: Error response
+  UI --> User: Show duplicate email error
+else Valid registration
+  Service -> Service: Validate input and hash password
+  Service -> Repo: createUser(newUser)
+  Repo -> DB: INSERT user
+  DB --> Repo: User created
+  Repo --> Service: Created user
+  Service -> Notify: sendVerificationEmail(user)
+  Notify --> Service: Notification accepted
+  Service --> Controller: 201 Registration successful
+  Controller --> UI: Success response
+  UI --> User: Show verification required message
+end
+@enduml

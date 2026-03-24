@@ -1,0 +1,32 @@
+@startuml
+autonumber
+actor User
+participant "Web UI" as UI
+participant "Appointment Controller" as Controller
+participant "Appointment Service" as Service
+participant "Appointment Repository" as Repo
+database "Database" as DB
+
+User -> UI: Fill appointment form and click Save
+UI -> Controller: POST /appointments
+Controller -> Service: createAppointment(payload)
+Service -> Service: Validate date/time and business rules
+Service -> Repo: checkOverlaps(userId, timeRange)
+Repo -> DB: SELECT overlapping appointments
+DB --> Repo: Conflict/no conflict
+Repo --> Service: Conflict flag
+
+alt Time conflict or invalid time
+  Service --> Controller: 409/400 Validation error
+  Controller --> UI: Error response
+  UI --> User: Show conflict or invalid time message
+else Valid appointment
+  Service -> Repo: createAppointment(payload)
+  Repo -> DB: INSERT appointment
+  DB --> Repo: Appointment created
+  Repo --> Service: Created appointment
+  Service --> Controller: 201 Appointment data
+  Controller --> UI: Success response
+  UI --> User: Render appointment in calendar
+end
+@enduml

@@ -1,0 +1,31 @@
+@startuml
+autonumber
+actor User
+participant "Web UI" as UI
+participant "Appointment Status Controller" as Controller
+participant "Appointment Status Service" as Service
+participant "Appointment Status Repository" as Repo
+database "Database" as DB
+
+User -> UI: Mark appointment as Completed/Pending
+UI -> Controller: PATCH /appointments/{id}/status
+Controller -> Service: updateStatus(id, status)
+Service -> Repo: findStatusContext(id, userId)
+Repo -> DB: SELECT appointment ownership + status
+DB --> Repo: Appointment exists and allowed
+Repo --> Service: Status context
+
+alt Invalid state transition
+  Service --> Controller: 400 Invalid status transition
+  Controller --> UI: Error response
+  UI --> User: Show status update error
+else Status update allowed
+  Service -> Repo: updateStatus(id, status)
+  Repo -> DB: UPDATE appointment status
+  DB --> Repo: Status updated
+  Repo --> Service: Persisted
+  Service --> Controller: 200 Status updated
+  Controller --> UI: Success response
+  UI --> User: Update UI style and statistics trigger
+end
+@enduml

@@ -1,0 +1,28 @@
+@startuml
+autonumber
+actor User
+participant "Web UI" as UI
+participant "Appointment Query Controller" as Controller
+participant "Appointment Query Service" as Service
+participant "Appointment Query Repository" as Repo
+database "Database" as DB
+
+User -> UI: Enter keyword and set filters
+UI -> Controller: GET /appointments?query&dateRange&tag&status
+Controller -> Service: searchAppointments(filters)
+Service -> Service: Validate filter parameters
+Service -> Repo: findByUserAndFilters(userId, filters)
+Repo -> DB: SELECT appointments with filters
+DB --> Repo: Matching appointments
+Repo --> Service: Result list
+
+alt No results
+  Service --> Controller: 200 Empty list
+  Controller --> UI: Empty response
+  UI --> User: Show "No results found"
+else Results found
+  Service --> Controller: 200 Appointment list
+  Controller --> UI: Success response
+  UI --> User: Display filtered list
+end
+@enduml

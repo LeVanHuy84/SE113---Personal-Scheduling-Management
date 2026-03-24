@@ -1,0 +1,39 @@
+@startuml
+autonumber
+actor User
+participant "Web UI" as UI
+participant "Appointment Controller" as Controller
+participant "Appointment Service" as Service
+participant "Appointment Repository" as Repo
+database "Database" as DB
+
+User -> UI: Click Delete and confirm
+UI -> Controller: DELETE /appointments/{id}?scope=single|series
+Controller -> Service: deleteAppointment(id, scope)
+Service -> Repo: findByIdWithRecurrence(id)
+Repo -> DB: SELECT appointment + recurrence metadata
+DB --> Repo: Appointment data
+Repo --> Service: Appointment data
+
+alt Appointment not found
+  Service --> Controller: 404 Not found
+  Controller --> UI: Error response
+  UI --> User: Show not found message
+else Delete recurring series
+  Service -> Repo: deleteRecurringScope(id, scope)
+  Repo -> DB: DELETE recurring instance/series
+  DB --> Repo: Delete completed
+  Repo --> Service: Persisted
+  Service --> Controller: 200 Delete successful
+  Controller --> UI: Success response
+  UI --> User: Remove from calendar
+else Delete single appointment
+  Service -> Repo: deleteById(id)
+  Repo -> DB: DELETE appointment
+  DB --> Repo: Delete completed
+  Repo --> Service: Persisted
+  Service --> Controller: 200 Delete successful
+  Controller --> UI: Success response
+  UI --> User: Remove from calendar
+end
+@enduml

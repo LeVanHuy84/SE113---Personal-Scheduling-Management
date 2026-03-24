@@ -1,0 +1,34 @@
+@startuml
+autonumber
+actor User
+participant "Web UI" as UI
+participant "Auth Controller" as Controller
+participant "Auth Service" as Service
+participant "Auth Repository" as Repo
+database "Database" as DB
+participant "JWT Provider" as JWT
+
+User -> UI: Enter email/password and click Login
+UI -> Controller: POST /auth/login
+Controller -> Service: authenticate(credentials)
+Service -> Repo: findUserByEmail(email)
+Repo -> DB: SELECT user by email
+DB --> Repo: User record / no row
+Repo --> Service: User data / null
+
+alt Invalid credentials or unverified account
+  Service --> Controller: 401/403 Authentication failed
+  Controller --> UI: Error response
+  UI --> User: Show login failed message
+else Login success
+  Service -> JWT: generateAccessToken(user)
+  JWT --> Service: JWT token
+  Service -> Repo: logAuthenticationAttempt(userId, success)
+  Repo -> DB: INSERT auth log
+  DB --> Repo: Log stored
+  Repo --> Service: Persisted
+  Service --> Controller: 200 JWT + session info
+  Controller --> UI: Success response
+  UI --> User: Redirect to calendar dashboard
+end
+@enduml

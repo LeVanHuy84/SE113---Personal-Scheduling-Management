@@ -1,0 +1,28 @@
+@startuml
+autonumber
+actor User
+participant "Web UI" as UI
+participant "Recurring Appointment Controller" as Controller
+participant "Recurring Appointment Service" as Service
+participant "Recurring Appointment Repository" as Repo
+database "Database" as DB
+
+User -> UI: Enable recurrence and configure pattern
+UI -> Controller: POST /appointments/{id}/recurrence
+Controller -> Service: configureRecurrence(id, rule)
+Service -> Service: Validate recurrence rule
+
+alt Invalid recurrence rule
+  Service --> Controller: 400 Invalid pattern or end condition
+  Controller --> UI: Error response
+  UI --> User: Show recurrence validation error
+else Valid recurrence rule
+  Service -> Repo: saveRuleAndGenerateInstances(id, rule)
+  Repo -> DB: INSERT recurrence rule + generated instances
+  DB --> Repo: Series instances created
+  Repo --> Service: Persisted
+  Service --> Controller: 201 Recurring schedule created
+  Controller --> UI: Success response
+  UI --> User: Display recurring appointments on calendar
+end
+@enduml
