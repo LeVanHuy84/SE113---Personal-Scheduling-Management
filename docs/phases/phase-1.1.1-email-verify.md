@@ -84,7 +84,7 @@ EMAIL_PORT=
 EMAIL_USER=
 EMAIL_PASS=
 EMAIL_FROM=
-APP_BASE_URL=http://localhost:3000
+FRONTEND_BASE_URL=http://localhost:3000
 
 ---
 
@@ -92,7 +92,7 @@ APP_BASE_URL=http://localhost:3000
 
 Format:
 
-{APP_BASE_URL}/verify-email?token=<token>
+{FRONTEND_BASE_URL}/verify-email?token=<token>
 
 ---
 

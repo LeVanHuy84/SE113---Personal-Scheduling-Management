@@ -48,5 +48,35 @@ export function validateEnvironment(
     validated.JWT_VERIFY_EXPIRES_IN_SECONDS = jwtVerifyExpiresInSeconds;
   }
 
+  const emailHost = config.EMAIL_HOST;
+  if (typeof emailHost === 'string') {
+    validated.EMAIL_HOST = emailHost;
+  }
+
+  const emailPort = config.EMAIL_PORT;
+  if (typeof emailPort === 'string') {
+    validated.EMAIL_PORT = emailPort;
+  }
+
+  const emailUser = config.EMAIL_USER;
+  if (typeof emailUser === 'string') {
+    validated.EMAIL_USER = emailUser;
+  }
+
+  const emailPass = config.EMAIL_PASS;
+  if (typeof emailPass === 'string') {
+    validated.EMAIL_PASS = emailPass;
+  }
+
+  const emailFrom = config.EMAIL_FROM;
+  if (typeof emailFrom === 'string') {
+    validated.EMAIL_FROM = emailFrom;
+  }
+
+  const appBaseUrl = config.FRONTEND_BASE_URL;
+  if (typeof appBaseUrl === 'string') {
+    validated.FRONTEND_BASE_URL = appBaseUrl;
+  }
+
   return validated;
 }

@@ -45,7 +45,7 @@ export class EmailService {
     displayName: string;
   }) {
     const verifyUrl = `${this.configService.get(
-      'APP_BASE_URL',
+      'FRONTEND_BASE_URL',
     )}/verify-email?token=${input.token}`;
 
     await this.transporter.sendMail({

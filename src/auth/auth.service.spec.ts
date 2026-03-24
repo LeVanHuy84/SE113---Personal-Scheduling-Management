@@ -10,10 +10,12 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { AuthRepository } from './repositories/auth.repository';
+import { EmailService } from '../email/email.service';
 
 describe('AuthService', () => {
   let service: AuthService;
   let authRepository: jest.Mocked<AuthRepository>;
+  let emailService: jest.Mocked<EmailService>;
   let jwtService: jest.Mocked<JwtService>;
   let configService: jest.Mocked<ConfigService>;
 
@@ -31,6 +33,10 @@ describe('AuthService', () => {
       verifyAsync: jest.fn(),
     } as unknown as jest.Mocked<JwtService>;
 
+    emailService = {
+      sendVerificationEmail: jest.fn(),
+    } as unknown as jest.Mocked<EmailService>;
+
     configService = {
       get: jest.fn((key: string) => {
         const values: Record<string, string> = {
@@ -44,7 +50,12 @@ describe('AuthService', () => {
       }),
     } as unknown as jest.Mocked<ConfigService>;
 
-    service = new AuthService(authRepository, jwtService, configService);
+    service = new AuthService(
+      authRepository,
+      emailService,
+      jwtService,
+      configService,
+    );
   });
 
   it('registers user successfully with hashed password', async () => {
@@ -74,6 +85,39 @@ describe('AuthService', () => {
     ).toBe(true);
 
     expect(result).toEqual({
+      id: 'user-1',
+      email: 'test@example.com',
+      displayName: 'Test User',
+      createdAt: '2026-03-24T10:00:00.000Z',
+    });
+    expect(emailService.sendVerificationEmail).toHaveBeenCalledWith({
+      to: 'test@example.com',
+      token: 'verify-token',
+      displayName: 'Test User',
+    });
+  });
+
+  it('does not fail registration when sending verification email fails', async () => {
+    authRepository.createUser.mockResolvedValue({
+      id: 'user-1',
+      email: 'test@example.com',
+      displayName: 'Test User',
+      createdAt: new Date('2026-03-24T10:00:00.000Z'),
+      passwordHash: 'hashed',
+      isVerified: false,
+    } as never);
+    (jwtService.signAsync as jest.Mock).mockResolvedValue('verify-token');
+    emailService.sendVerificationEmail.mockRejectedValue(
+      new Error('smtp down'),
+    );
+
+    await expect(
+      service.register({
+        email: 'test@example.com',
+        password: 'ValidPass123',
+        displayName: 'Test User',
+      }),
+    ).resolves.toEqual({
       id: 'user-1',
       email: 'test@example.com',
       displayName: 'Test User',

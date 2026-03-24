@@ -5,6 +5,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { setupApplication } from '../common/setup-app';
+import { EmailService } from '../email/email.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthModule } from './auth.module';
 import { AuthService } from './auth.service';
@@ -41,6 +42,9 @@ describe('AuthController (integration)', () => {
   const usersById = new Map<string, MockUser>();
   const usersByEmail = new Map<string, MockUser>();
   const authAttempts: Array<Record<string, unknown>> = [];
+  const emailServiceMock = {
+    sendVerificationEmail: jest.fn(),
+  };
 
   const prismaMock = {
     user: {
@@ -107,6 +111,7 @@ describe('AuthController (integration)', () => {
     usersById.clear();
     usersByEmail.clear();
     authAttempts.length = 0;
+    emailServiceMock.sendVerificationEmail.mockReset();
     jest.clearAllMocks();
   });
 
@@ -128,6 +133,8 @@ describe('AuthController (integration)', () => {
     })
       .overrideProvider(PrismaService)
       .useValue(prismaMock)
+      .overrideProvider(EmailService)
+      .useValue(emailServiceMock)
       .compile();
 
     authService = moduleFixture.get(AuthService);

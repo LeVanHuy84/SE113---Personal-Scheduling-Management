@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -16,6 +17,7 @@ import {
   JwtPayload,
   VerificationJwtPayload,
 } from './interfaces/jwt-payload.interface';
+import { EmailService } from '../email/email.service';
 
 type LoginMetadata = {
   ip?: string | null;
@@ -30,6 +32,7 @@ type LoginResponse = {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private readonly accessTokenTtlSeconds: number;
   private readonly verificationTokenTtlSeconds: number;
   private readonly accessSecret: string;
@@ -37,6 +40,7 @@ export class AuthService {
 
   constructor(
     private readonly authRepository: AuthRepository,
+    private readonly emailService: EmailService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {
@@ -64,7 +68,20 @@ export class AuthService {
         displayName: dto.displayName,
       });
 
-      await this.generateVerificationToken(user.id);
+      const token = await this.generateVerificationToken(user.id);
+      try {
+        this.emailService
+          .sendVerificationEmail({
+            to: user.email,
+            token,
+            displayName: user.displayName,
+          })
+          .catch((err) => {
+            this.logger.error('Failed to send verification email', err);
+          });
+      } catch (error) {
+        this.logger.error('Failed to send verification email', error);
+      }
 
       return {
         id: user.id,
