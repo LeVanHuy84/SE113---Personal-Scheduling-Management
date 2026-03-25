@@ -11,6 +11,7 @@ import { CreateAuthLoginRequestDto } from './dto/create-auth-login-request.dto';
 import { CreateAuthRegisterRequestDto } from './dto/create-auth-register-request.dto';
 import { CreateVerifyEmailRequestDto } from './dto/create-verify-email-request.dto';
 import { AuthService } from './auth.service';
+import { CreateResendVerificationEmailRequestDto } from './dto/create-resend-verification-email-request.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -25,6 +26,14 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async verifyEmail(@Body() dto: CreateVerifyEmailRequestDto) {
     return this.authService.verifyEmail(dto.token);
+  }
+
+  @Post('resend-verification-email')
+  @HttpCode(HttpStatus.OK)
+  async resendVerificationEmail(
+    @Body() dto: CreateResendVerificationEmailRequestDto,
+  ) {
+    return this.authService.resendVerificationEmail(dto.email);
   }
 
   @Post('login')

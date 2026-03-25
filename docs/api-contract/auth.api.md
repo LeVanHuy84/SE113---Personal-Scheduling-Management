@@ -115,10 +115,10 @@
 
 #### VerifyEmailResponseDto
 
-| Field   | Type    | Description         |
-| ------- | ------- | ------------------- |
-| success | boolean | Verification result |
-| message | string  | Verification status |
+| Field   | Type   | Description                       |
+| ------- | ------ | --------------------------------- |
+| message | string | Top-level verification status     |
+| data    | null   | No payload body for this endpoint |
 
 ### Business Rules Mapping
 
@@ -132,7 +132,42 @@
 - 404 Not Found: token does not correspond to user.
 - 500 Internal Server Error: verification update failure.
 
-## Endpoint 4: Request Password Reset
+## Endpoint 4: Resend Verification Email
+
+### Endpoint
+
+- Method: POST
+- URL: /auth/resend-verification-email
+- Description: Resend email verification link for unverified accounts.
+
+### Request DTO
+
+#### CreateResendVerificationEmailRequestDto
+
+| Field | Type   | Required | Validation                                 |
+| ----- | ------ | -------- | ------------------------------------------ |
+| email | string | Yes      | must be valid email format; max length 255 |
+
+### Response DTO
+
+#### ResendVerificationEmailResponseDto
+
+| Field   | Type   | Description                                                                                               |
+| ------- | ------ | --------------------------------------------------------------------------------------------------------- |
+| message | string | Generic top-level status: "If the account exists and is not verified, a verification email has been sent" |
+| data    | null   | No payload body for this endpoint                                                                         |
+
+### Business Rules Mapping
+
+- BR-1: resend check uses unique user email lookup.
+- BR-31: resend workflow communicated securely.
+
+### Error Cases
+
+- 400 Bad Request: invalid email format.
+- 500 Internal Server Error: token generation failure.
+
+## Endpoint 5: Request Password Reset
 
 ### Endpoint
 
@@ -168,7 +203,7 @@
 - 404 Not Found: email not registered.
 - 500 Internal Server Error: reset token persistence or notification dispatch failure.
 
-## Endpoint 5: Reset Password
+## Endpoint 6: Reset Password
 
 ### Endpoint
 

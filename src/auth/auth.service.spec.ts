@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -18,6 +19,7 @@ describe('AuthService', () => {
   let emailService: jest.Mocked<EmailService>;
   let jwtService: jest.Mocked<JwtService>;
   let configService: jest.Mocked<ConfigService>;
+  let loggerErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     authRepository = {
@@ -36,6 +38,7 @@ describe('AuthService', () => {
     emailService = {
       sendVerificationEmail: jest.fn(),
     } as unknown as jest.Mocked<EmailService>;
+    emailService.sendVerificationEmail.mockResolvedValue(undefined);
 
     configService = {
       get: jest.fn((key: string) => {
@@ -56,6 +59,14 @@ describe('AuthService', () => {
       jwtService,
       configService,
     );
+
+    loggerErrorSpy = jest
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    loggerErrorSpy.mockRestore();
   });
 
   it('registers user successfully with hashed password', async () => {
@@ -157,8 +168,8 @@ describe('AuthService', () => {
 
     expect(authRepository.markUserAsVerified).toHaveBeenCalledWith('user-1');
     expect(result).toEqual({
-      success: true,
       message: 'Email verified successfully',
+      data: null,
     });
   });
 
@@ -263,5 +274,87 @@ describe('AuthService', () => {
         result: 'SUCCESS',
       }),
     );
+  });
+
+  it('resends verification email for existing unverified user', async () => {
+    authRepository.findUserByEmail.mockResolvedValue({
+      id: 'user-1',
+      email: 'verify@example.com',
+      displayName: 'Verify User',
+      isVerified: false,
+    } as never);
+    (jwtService.signAsync as jest.Mock).mockResolvedValue('verify-token');
+
+    const result = await service.resendVerificationEmail('verify@example.com');
+
+    expect(result).toEqual({
+      message:
+        'If the account exists and is not verified, a verification email has been sent',
+      data: null,
+    });
+    expect(authRepository.findUserByEmail).toHaveBeenCalledWith(
+      'verify@example.com',
+    );
+    expect(emailService.sendVerificationEmail).toHaveBeenCalledWith({
+      to: 'verify@example.com',
+      token: 'verify-token',
+      displayName: 'Verify User',
+    });
+  });
+
+  it('returns generic success and does not send email for verified user', async () => {
+    authRepository.findUserByEmail.mockResolvedValue({
+      id: 'user-1',
+      email: 'verified@example.com',
+      displayName: 'Verified User',
+      isVerified: true,
+    } as never);
+
+    const result = await service.resendVerificationEmail(
+      'verified@example.com',
+    );
+
+    expect(result).toEqual({
+      message:
+        'If the account exists and is not verified, a verification email has been sent',
+      data: null,
+    });
+    expect(jwtService.signAsync).not.toHaveBeenCalled();
+    expect(emailService.sendVerificationEmail).not.toHaveBeenCalled();
+  });
+
+  it('returns generic success and does not send email for unknown account', async () => {
+    authRepository.findUserByEmail.mockResolvedValue(null);
+
+    const result = await service.resendVerificationEmail('missing@example.com');
+
+    expect(result).toEqual({
+      message:
+        'If the account exists and is not verified, a verification email has been sent',
+      data: null,
+    });
+    expect(jwtService.signAsync).not.toHaveBeenCalled();
+    expect(emailService.sendVerificationEmail).not.toHaveBeenCalled();
+  });
+
+  it('does not fail resend when email dispatch fails', async () => {
+    authRepository.findUserByEmail.mockResolvedValue({
+      id: 'user-1',
+      email: 'verify@example.com',
+      displayName: 'Verify User',
+      isVerified: false,
+    } as never);
+    (jwtService.signAsync as jest.Mock).mockResolvedValue('verify-token');
+    emailService.sendVerificationEmail.mockRejectedValue(
+      new Error('smtp down'),
+    );
+
+    await expect(
+      service.resendVerificationEmail('verify@example.com'),
+    ).resolves.toEqual({
+      data: null,
+      message:
+        'If the account exists and is not verified, a verification email has been sent',
+    });
   });
 });

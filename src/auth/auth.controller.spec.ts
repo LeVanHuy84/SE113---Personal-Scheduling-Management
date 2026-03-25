@@ -303,10 +303,8 @@ describe('AuthController (integration)', () => {
       .expect(200);
 
     expect(response.body.success).toBe(true);
-    expect(response.body.data).toEqual({
-      success: true,
-      message: 'Email verified successfully',
-    });
+    expect(response.body.message).toBe('Email verified successfully');
+    expect(response.body.data).toBeNull();
     expect(usersById.get(register.body.data.id)?.isVerified).toBe(true);
   });
 
@@ -350,6 +348,103 @@ describe('AuthController (integration)', () => {
     expect(secondAttempt.body.message).toContain(
       'Invalid or expired verification token',
     );
+  });
+
+  it('resends verification email for unverified account', async () => {
+    await request(app.getHttpServer()).post('/auth/register').send({
+      email: 'resend@example.com',
+      password: 'ValidPass123',
+      displayName: 'Resend User',
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/resend-verification-email')
+      .send({ email: 'resend@example.com' })
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.message).toBe(
+      'If the account exists and is not verified, a verification email has been sent',
+    );
+    expect(response.body.data).toBeNull();
+
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(emailServiceMock.sendVerificationEmail).toHaveBeenCalledTimes(2);
+    expect(emailServiceMock.sendVerificationEmail).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        to: 'resend@example.com',
+        displayName: 'Resend User',
+      }),
+    );
+  });
+
+  it('returns generic success for verified account without sending new email', async () => {
+    const register = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: 'resend-verified@example.com',
+        password: 'ValidPass123',
+        displayName: 'Resend Verified User',
+      })
+      .expect(201);
+
+    const token = await authService.generateVerificationToken(
+      register.body.data.id,
+    );
+    await request(app.getHttpServer())
+      .post('/auth/verify-email')
+      .send({ token })
+      .expect(200);
+
+    const callsBefore =
+      emailServiceMock.sendVerificationEmail.mock.calls.length;
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/resend-verification-email')
+      .send({ email: 'resend-verified@example.com' })
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.message).toBe(
+      'If the account exists and is not verified, a verification email has been sent',
+    );
+    expect(response.body.data).toBeNull();
+
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(emailServiceMock.sendVerificationEmail).toHaveBeenCalledTimes(
+      callsBefore,
+    );
+  });
+
+  it('returns generic success for unknown account', async () => {
+    const callsBefore =
+      emailServiceMock.sendVerificationEmail.mock.calls.length;
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/resend-verification-email')
+      .send({ email: 'missing-account@example.com' })
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.message).toBe(
+      'If the account exists and is not verified, a verification email has been sent',
+    );
+    expect(response.body.data).toBeNull();
+
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(emailServiceMock.sendVerificationEmail).toHaveBeenCalledTimes(
+      callsBefore,
+    );
+  });
+
+  it('returns 400 for invalid resend payload', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/auth/resend-verification-email')
+      .send({ email: 'invalid-email' })
+      .expect(400);
+
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toContain('email must be an email');
   });
 
   it('protects route with JWT guard and extracts current user', async () => {

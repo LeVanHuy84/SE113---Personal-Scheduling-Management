@@ -30,6 +30,16 @@ type LoginResponse = {
   expiresIn: number;
 };
 
+type ResendVerificationEmailResponse = {
+  message: string;
+  data: null;
+};
+
+type VerifyEmailResponse = {
+  message: string;
+  data: null;
+};
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -69,19 +79,17 @@ export class AuthService {
       });
 
       const token = await this.generateVerificationToken(user.id);
-      try {
-        this.emailService
-          .sendVerificationEmail({
+      void Promise.resolve()
+        .then(() =>
+          this.emailService.sendVerificationEmail({
             to: user.email,
             token,
             displayName: user.displayName,
-          })
-          .catch((err) => {
-            this.logger.error('Failed to send verification email', err);
-          });
-      } catch (error) {
-        this.logger.error('Failed to send verification email', error);
-      }
+          }),
+        )
+        .catch((error) => {
+          this.logger.error('Failed to send verification email', error);
+        });
 
       return {
         id: user.id,
@@ -170,9 +178,7 @@ export class AuthService {
     };
   }
 
-  async verifyEmail(
-    token: string,
-  ): Promise<{ success: true; message: string }> {
+  async verifyEmail(token: string): Promise<VerifyEmailResponse> {
     let payload: VerificationJwtPayload;
 
     try {
@@ -203,9 +209,39 @@ export class AuthService {
     await this.authRepository.markUserAsVerified(user.id);
 
     return {
-      success: true,
       message: 'Email verified successfully',
+      data: null,
     };
+  }
+
+  async resendVerificationEmail(
+    email: string,
+  ): Promise<ResendVerificationEmailResponse> {
+    const response: ResendVerificationEmailResponse = {
+      message:
+        'If the account exists and is not verified, a verification email has been sent',
+      data: null,
+    };
+
+    const user = await this.authRepository.findUserByEmail(email);
+    if (!user || user.isVerified) {
+      return response;
+    }
+
+    const token = await this.generateVerificationToken(user.id);
+    void Promise.resolve()
+      .then(() =>
+        this.emailService.sendVerificationEmail({
+          to: user.email,
+          token,
+          displayName: user.displayName,
+        }),
+      )
+      .catch((error) => {
+        this.logger.error('Failed to resend verification email', error);
+      });
+
+    return response;
   }
 
   async generateVerificationToken(userId: string): Promise<string> {
