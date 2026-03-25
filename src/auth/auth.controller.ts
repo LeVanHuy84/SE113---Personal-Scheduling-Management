@@ -9,6 +9,8 @@ import {
 import type { Request } from 'express';
 import { CreateAuthLoginRequestDto } from './dto/create-auth-login-request.dto';
 import { CreateAuthRegisterRequestDto } from './dto/create-auth-register-request.dto';
+import { CreateForgotPasswordRequestDto } from './dto/create-forgot-password-request.dto';
+import { CreateResetPasswordRequestDto } from './dto/create-reset-password-request.dto';
 import { CreateVerifyEmailRequestDto } from './dto/create-verify-email-request.dto';
 import { AuthService } from './auth.service';
 import { CreateResendVerificationEmailRequestDto } from './dto/create-resend-verification-email-request.dto';
@@ -34,6 +36,18 @@ export class AuthController {
     @Body() dto: CreateResendVerificationEmailRequestDto,
   ) {
     return this.authService.resendVerificationEmail(dto.email);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() dto: CreateForgotPasswordRequestDto) {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() dto: CreateResetPasswordRequestDto) {
+    return this.authService.resetPassword(dto.token, dto.newPassword);
   }
 
   @Post('login')

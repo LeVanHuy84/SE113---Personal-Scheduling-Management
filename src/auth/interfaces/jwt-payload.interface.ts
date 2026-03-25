@@ -7,3 +7,8 @@ export interface VerificationJwtPayload {
   sub: string;
   type: 'verification';
 }
+
+export interface ResetJwtPayload {
+  sub: string;
+  type: 'reset';
+}

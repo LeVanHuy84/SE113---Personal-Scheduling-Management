@@ -29,6 +29,8 @@ type MockUser = {
   id: string;
   email: string;
   passwordHash: string;
+  passwordResetTokenHash?: string | null;
+  passwordResetExpiresAt?: Date | null;
   displayName: string;
   isVerified: boolean;
   createdAt: Date;
@@ -44,6 +46,7 @@ describe('AuthController (integration)', () => {
   const authAttempts: Array<Record<string, unknown>> = [];
   const emailServiceMock = {
     sendVerificationEmail: jest.fn(),
+    sendPasswordResetEmail: jest.fn(),
   };
 
   const prismaMock = {
@@ -61,6 +64,8 @@ describe('AuthController (integration)', () => {
           id: `user-${usersById.size + 1}`,
           email: data.email,
           passwordHash: data.passwordHash,
+          passwordResetTokenHash: data.passwordResetTokenHash ?? null,
+          passwordResetExpiresAt: data.passwordResetExpiresAt ?? null,
           displayName: data.displayName,
           isVerified: data.isVerified,
           createdAt: new Date('2026-03-24T10:00:00.000Z'),
@@ -112,14 +117,17 @@ describe('AuthController (integration)', () => {
     usersByEmail.clear();
     authAttempts.length = 0;
     emailServiceMock.sendVerificationEmail.mockReset();
+    emailServiceMock.sendPasswordResetEmail.mockReset();
     jest.clearAllMocks();
   });
 
   beforeAll(async () => {
     process.env.JWT_ACCESS_SECRET = 'test-access-secret';
     process.env.JWT_VERIFY_SECRET = 'test-verify-secret';
+    process.env.JWT_RESET_SECRET = 'test-reset-secret';
     process.env.JWT_ACCESS_EXPIRES_IN_SECONDS = '3600';
     process.env.JWT_VERIFY_EXPIRES_IN_SECONDS = '86400';
+    process.env.JWT_RESET_EXPIRES_IN_SECONDS = '900';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
@@ -491,5 +499,146 @@ describe('AuthController (integration)', () => {
       .expect(401);
 
     await request(app.getHttpServer()).get('/auth-test/protected').expect(401);
+  });
+
+  it('returns generic forgot-password response for existing account and sends reset email', async () => {
+    await request(app.getHttpServer()).post('/auth/register').send({
+      email: 'recovery@example.com',
+      password: 'ValidPass123',
+      displayName: 'Recovery User',
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/forgot-password')
+      .send({ email: 'recovery@example.com' })
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.message).toBe(
+      'If the account exists, reset instructions sent',
+    );
+    expect(response.body.data).toBeNull();
+
+    const updatedUser = usersByEmail.get('recovery@example.com');
+    expect(updatedUser?.passwordResetTokenHash).toBeTruthy();
+    expect(updatedUser?.passwordResetExpiresAt).toBeInstanceOf(Date);
+
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(emailServiceMock.sendPasswordResetEmail).toHaveBeenCalledTimes(1);
+    expect(emailServiceMock.sendPasswordResetEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'recovery@example.com',
+        displayName: 'Recovery User',
+      }),
+    );
+  });
+
+  it('returns generic forgot-password response for unknown account without sending email', async () => {
+    const callsBefore =
+      emailServiceMock.sendPasswordResetEmail.mock.calls.length;
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/forgot-password')
+      .send({ email: 'unknown@example.com' })
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.message).toBe(
+      'If the account exists, reset instructions sent',
+    );
+    expect(response.body.data).toBeNull();
+
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(emailServiceMock.sendPasswordResetEmail).toHaveBeenCalledTimes(
+      callsBefore,
+    );
+  });
+
+  it('resets password with valid reset token', async () => {
+    await request(app.getHttpServer()).post('/auth/register').send({
+      email: 'reset-ok@example.com',
+      password: 'ValidPass123',
+      displayName: 'Reset Ok User',
+    });
+
+    const forgot = await request(app.getHttpServer())
+      .post('/auth/forgot-password')
+      .send({ email: 'reset-ok@example.com' })
+      .expect(200);
+
+    expect(forgot.body.success).toBe(true);
+
+    const resetEmailCall =
+      emailServiceMock.sendPasswordResetEmail.mock.calls[
+        emailServiceMock.sendPasswordResetEmail.mock.calls.length - 1
+      ];
+    const resetToken = resetEmailCall?.[0].token;
+    expect(typeof resetToken).toBe('string');
+
+    const reset = await request(app.getHttpServer())
+      .post('/auth/reset-password')
+      .send({
+        token: resetToken,
+        newPassword: 'NewValidPass123',
+      })
+      .expect(200);
+
+    expect(reset.body.success).toBe(true);
+    expect(reset.body.message).toBe('Password reset successful');
+    expect(reset.body.data).toBeNull();
+
+    const user = usersByEmail.get('reset-ok@example.com');
+    expect(user?.passwordResetTokenHash).toBeNull();
+    expect(user?.passwordResetExpiresAt).toBeNull();
+    expect(await bcrypt.compare('NewValidPass123', user!.passwordHash)).toBe(
+      true,
+    );
+  });
+
+  it('rejects reset password when token is invalid', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/auth/reset-password')
+      .send({
+        token: 'invalid-reset-token',
+        newPassword: 'NewValidPass123',
+      })
+      .expect(400);
+
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toContain('Invalid or expired reset token');
+  });
+
+  it('rejects reset password when token is reused', async () => {
+    await request(app.getHttpServer()).post('/auth/register').send({
+      email: 'reset-reuse@example.com',
+      password: 'ValidPass123',
+      displayName: 'Reset Reuse User',
+    });
+
+    await request(app.getHttpServer())
+      .post('/auth/forgot-password')
+      .send({ email: 'reset-reuse@example.com' })
+      .expect(200);
+
+    const resetEmailCall =
+      emailServiceMock.sendPasswordResetEmail.mock.calls[
+        emailServiceMock.sendPasswordResetEmail.mock.calls.length - 1
+      ];
+    const resetToken = resetEmailCall?.[0].token;
+
+    await request(app.getHttpServer())
+      .post('/auth/reset-password')
+      .send({ token: resetToken, newPassword: 'NewValidPass123' })
+      .expect(200);
+
+    const secondAttempt = await request(app.getHttpServer())
+      .post('/auth/reset-password')
+      .send({ token: resetToken, newPassword: 'NewValidPass123' })
+      .expect(400);
+
+    expect(secondAttempt.body.success).toBe(false);
+    expect(secondAttempt.body.message).toContain(
+      'Invalid or expired reset token',
+    );
   });
 });

@@ -52,6 +52,40 @@ export class AuthRepository {
   }
 
   /**
+   * Save password reset token hash and expiry for a user
+   */
+  async setPasswordResetToken(data: {
+    userId: string;
+    tokenHash: string;
+    expiresAt: Date;
+  }): Promise<any> {
+    return this.prisma.user.update({
+      where: { id: data.userId },
+      data: {
+        passwordResetTokenHash: data.tokenHash,
+        passwordResetExpiresAt: data.expiresAt,
+      },
+    });
+  }
+
+  /**
+   * Update password and invalidate current reset token
+   */
+  async updatePasswordAndClearResetToken(data: {
+    userId: string;
+    passwordHash: string;
+  }): Promise<any> {
+    return this.prisma.user.update({
+      where: { id: data.userId },
+      data: {
+        passwordHash: data.passwordHash,
+        passwordResetTokenHash: null,
+        passwordResetExpiresAt: null,
+      },
+    });
+  }
+
+  /**
    * Log authentication attempt
    */
   async logAuthAttempt(data: {

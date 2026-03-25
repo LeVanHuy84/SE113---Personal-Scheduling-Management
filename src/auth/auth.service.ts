@@ -15,6 +15,7 @@ import { CreateAuthLoginRequestDto } from './dto/create-auth-login-request.dto';
 import { CreateAuthRegisterRequestDto } from './dto/create-auth-register-request.dto';
 import {
   JwtPayload,
+  ResetJwtPayload,
   VerificationJwtPayload,
 } from './interfaces/jwt-payload.interface';
 import { EmailService } from '../email/email.service';
@@ -40,13 +41,25 @@ type VerifyEmailResponse = {
   data: null;
 };
 
+type ForgotPasswordResponse = {
+  message: string;
+  data: null;
+};
+
+type ResetPasswordResponse = {
+  message: string;
+  data: null;
+};
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private readonly accessTokenTtlSeconds: number;
   private readonly verificationTokenTtlSeconds: number;
+  private readonly resetTokenTtlSeconds: number;
   private readonly accessSecret: string;
   private readonly verificationSecret: string;
+  private readonly resetSecret: string;
 
   constructor(
     private readonly authRepository: AuthRepository,
@@ -60,12 +73,17 @@ export class AuthService {
     this.verificationTokenTtlSeconds = Number(
       this.configService.get<string>('JWT_VERIFY_EXPIRES_IN_SECONDS') ?? 86400,
     );
+    this.resetTokenTtlSeconds = Number(
+      this.configService.get<string>('JWT_RESET_EXPIRES_IN_SECONDS') ?? 900,
+    );
     this.accessSecret =
       this.configService.get<string>('JWT_ACCESS_SECRET') ??
       'psms-access-secret';
     this.verificationSecret =
       this.configService.get<string>('JWT_VERIFY_SECRET') ??
       'psms-verify-secret';
+    this.resetSecret =
+      this.configService.get<string>('JWT_RESET_SECRET') ?? 'psms-reset-secret';
   }
 
   async register(dto: CreateAuthRegisterRequestDto) {
@@ -244,6 +262,93 @@ export class AuthService {
     return response;
   }
 
+  async forgotPassword(email: string): Promise<ForgotPasswordResponse> {
+    const response: ForgotPasswordResponse = {
+      message: 'If the account exists, reset instructions sent',
+      data: null,
+    };
+
+    const user = await this.authRepository.findUserByEmail(email);
+
+    if (!user) {
+      return response;
+    }
+
+    const resetToken = await this.generateResetToken(user.id);
+    const tokenHash = await bcrypt.hash(resetToken, 10);
+    const expiresAt = new Date(Date.now() + this.resetTokenTtlSeconds * 1000);
+
+    await this.authRepository.setPasswordResetToken({
+      userId: user.id,
+      tokenHash,
+      expiresAt,
+    });
+
+    void Promise.resolve()
+      .then(() =>
+        this.emailService.sendPasswordResetEmail({
+          to: user.email,
+          token: resetToken,
+          displayName: user.displayName,
+        }),
+      )
+      .catch((error) => {
+        this.logger.error('Failed to send password reset email', error);
+      });
+
+    return response;
+  }
+
+  async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<ResetPasswordResponse> {
+    let payload: ResetJwtPayload;
+
+    try {
+      payload = await this.jwtService.verifyAsync<ResetJwtPayload>(token, {
+        secret: this.resetSecret,
+      });
+    } catch {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    if (payload.type !== 'reset') {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    const user = await this.authRepository.findUserById(payload.sub);
+
+    if (
+      !user ||
+      !user.passwordResetTokenHash ||
+      !user.passwordResetExpiresAt ||
+      user.passwordResetExpiresAt <= new Date()
+    ) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    const isTokenValid = await bcrypt.compare(
+      token,
+      user.passwordResetTokenHash,
+    );
+
+    if (!isTokenValid) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.authRepository.updatePasswordAndClearResetToken({
+      userId: user.id,
+      passwordHash,
+    });
+
+    return {
+      message: 'Password reset successful',
+      data: null,
+    };
+  }
+
   async generateVerificationToken(userId: string): Promise<string> {
     return this.jwtService.signAsync(
       {
@@ -253,6 +358,19 @@ export class AuthService {
       {
         secret: this.verificationSecret,
         expiresIn: `${this.verificationTokenTtlSeconds}s`,
+      },
+    );
+  }
+
+  async generateResetToken(userId: string): Promise<string> {
+    return this.jwtService.signAsync(
+      {
+        sub: userId,
+        type: 'reset',
+      },
+      {
+        secret: this.resetSecret,
+        expiresIn: `${this.resetTokenTtlSeconds}s`,
       },
     );
   }

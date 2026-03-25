@@ -38,6 +38,11 @@ export function validateEnvironment(
     validated.JWT_VERIFY_SECRET = jwtVerifySecret;
   }
 
+  const jwtResetSecret = config.JWT_RESET_SECRET;
+  if (typeof jwtResetSecret === 'string') {
+    validated.JWT_RESET_SECRET = jwtResetSecret;
+  }
+
   const jwtAccessExpiresInSeconds = config.JWT_ACCESS_EXPIRES_IN_SECONDS;
   if (typeof jwtAccessExpiresInSeconds === 'string') {
     validated.JWT_ACCESS_EXPIRES_IN_SECONDS = jwtAccessExpiresInSeconds;
@@ -46,6 +51,11 @@ export function validateEnvironment(
   const jwtVerifyExpiresInSeconds = config.JWT_VERIFY_EXPIRES_IN_SECONDS;
   if (typeof jwtVerifyExpiresInSeconds === 'string') {
     validated.JWT_VERIFY_EXPIRES_IN_SECONDS = jwtVerifyExpiresInSeconds;
+  }
+
+  const jwtResetExpiresInSeconds = config.JWT_RESET_EXPIRES_IN_SECONDS;
+  if (typeof jwtResetExpiresInSeconds === 'string') {
+    validated.JWT_RESET_EXPIRES_IN_SECONDS = jwtResetExpiresInSeconds;
   }
 
   const emailHost = config.EMAIL_HOST;
