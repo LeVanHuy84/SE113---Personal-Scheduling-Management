@@ -2,78 +2,194 @@
 
 ## Purpose
 
-Enforce clean architecture, module structure, and validation rules.
+Enforce clean architecture, strict layering, and consistent coding standards across all modules.
 
 ---
 
 ## 1. Module Structure (MANDATORY)
 
+```
 <module>/
 ├── <module>.controller.ts
 ├── <module>.service.ts
 ├── <module>.repository.ts
 ├── dto/
 ├── entities/ (optional)
+```
 
-Rules:
+---
+
+## Rules
 
 - MUST organize by feature
-- MUST NOT organize by technical layers
+- MUST NOT organize by technical layer
+- Each module is self-contained
 
 ---
 
 ## 2. Layer Responsibilities
 
-Controller:
+### Controller
 
-- Handle HTTP only
-- Use DTO for validation
-- NO business logic
+- Handle HTTP requests/responses only
+- Extract data from request
+- Use DTOs for validation
+- Pass only primitive values to service
 
-Service:
+MUST NOT:
 
-- Business logic only
-- MUST NOT access DB directly
+- Contain business logic
+- Access database
+- Use Prisma directly
 
-Repository:
+---
 
-- Handle ALL DB queries
-- Use Prisma only here
+### Service
 
-Flow:
-Controller → Service → Repository → DB
+- Contain all business logic
+- Coordinate between layers
+
+Rules:
+
+- MUST NOT access database directly
+- MUST use repository layer
+- MUST NOT depend on framework objects
+
+Forbidden:
+
+```
+req.user
+JwtPayload
+Request
+```
+
+Allowed:
+
+```
+userId: string
+```
+
+---
+
+### Repository
+
+- Handle ALL database operations
+- Use Prisma ORM only here
+
+Rules:
+
+- MUST NOT contain business logic
+- MUST NOT depend on HTTP or DTO
+
+---
+
+### Flow
+
+```
+Controller → Service → Repository → Database
+```
 
 ---
 
 ## 3. DTO Validation (MANDATORY)
 
-Use class-validator:
+Use class-validator + class-transformer
 
-- @IsEmail()
-- @IsString()
-- @MinLength(6)
-- @IsOptional()
+Example:
 
-Rules:
-
-- Validate in DTO only
-- NO manual validation in service
+```
+export class ExampleDto {
+  @IsOptional()
+  @Transform(({ value }) => value?.trim())
+  @IsString()
+  @Length(1, 100)
+  name?: string;
+}
+```
 
 ---
 
-## 4. Anti-Patterns (FORBIDDEN)
+## Rules
 
-- Direct DB access in Service
-- Business logic in Controller
-- Custom Prisma type casting
-- Skipping DTO validation
+- Validate in DTO only
+- Do NOT validate manually in service
+- Always sanitize input
+
+---
+
+## 4. Current User Handling
+
+```
+@CurrentUser() user: { userId: string }
+```
+
+Rules:
+
+- MUST use user.userId
+- MUST NOT pass JWT payload to service
+- MUST NOT decode JWT manually
+
+---
+
+## 5. Error Handling
+
+Use NestJS exceptions:
+
+- BadRequestException
+- UnauthorizedException
+- NotFoundException
+
+---
+
+### Prisma Exception Mapping
+
+- P2025 → 404 Not Found
+- Other errors → 500 Internal Server Error
+
+---
+
+## 6. Anti-Patterns (FORBIDDEN)
+
+Direct DB access in Service:
+
+```
+this.prisma.user.findUnique()
+```
+
+Business logic in Controller:
+
+```
+if (...) { ... }
+```
+
+Passing Request into Service:
+
+```
+service.method(req)
+```
+
+Skipping DTO validation:
+
+```
+if (!dto.name)
+```
+
+---
+
+## 7. Best Practices
+
+- Keep functions small
+- Use explicit types
+- Keep naming consistent (userId)
+- Prefer early returns
+- Avoid side effects
 
 ---
 
 ## Summary
 
 - Feature-based modules
-- Clean layering enforced
-- Repository pattern required
-- Prisma only in Repository
+- Strict separation of concerns
+- Repository pattern enforced
 - DTO validation mandatory
+- JWT handled at controller boundary

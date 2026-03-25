@@ -19,7 +19,7 @@ Test cases for user profile management functionality.
 **Assertions:**
 
 - Response status 200
-- Response contains id, email, displayName, avatarUrl, createdAt
+- Response contains id, email, displayName, timezone, createdAt
 - Data matches authenticated user
 
 ### USER-02: Get Profile Unauthorized
@@ -46,7 +46,7 @@ Test cases for user profile management functionality.
 **Test Data:**
 
 - Authorization: "Bearer <valid-token>"
-- Body: { "displayName": "New Name" }
+- Body: { "displayName": "New Name", "timezone": "Asia/Ho_Chi_Minh" }
 
 **Assertions:**
 
@@ -63,7 +63,7 @@ Test cases for user profile management functionality.
 **Test Data:**
 
 - Authorization: "Bearer <valid-token>"
-- Body: { "avatarUrl": "http://example.com/avatar.jpg" }
+- Body: { "timezone": "Asia/Tokyo" }
 
 **Assertions:**
 

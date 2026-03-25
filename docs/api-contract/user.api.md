@@ -31,7 +31,7 @@
 | id          | uuid string         | User identifier            |
 | email       | string              | Account email              |
 | displayName | string              | Profile display name       |
-| avatarUrl   | string nullable     | Avatar URL                 |
+| timezone    | string              | User timezone (IANA)       |
 | createdAt   | ISO datetime string | Account creation timestamp |
 
 ### Business Rules Mapping
@@ -56,10 +56,12 @@
 
 #### UpdateProfileRequestDto
 
-| Field       | Type   | Required | Validation                   |
-| ----------- | ------ | -------- | ---------------------------- |
-| displayName | string | No       | min length 1; max length 100 |
-| avatarUrl   | string | No       | valid URL; max length 1024   |
+- The `id` field is derived from JWT payload `sub` via CurrentUser context
+
+| Field       | Type   | Required | Validation                                                         |
+| ----------- | ------ | -------- | ------------------------------------------------------------------ |
+| displayName | string | No       | min length 1; max length 100, Must not be empty or whitespace-only |
+| timezone    | string | No       | valid IANA timezone format; max length 64                          |
 
 ### Response DTO
 
@@ -70,7 +72,7 @@
 | id          | uuid string         | User identifier          |
 | email       | string              | Account email            |
 | displayName | string              | Updated profile name     |
-| avatarUrl   | string nullable     | Updated avatar URL       |
+| timezone    | string              | Updated user timezone    |
 | updatedAt   | ISO datetime string | Profile update timestamp |
 
 ### Business Rules Mapping
@@ -80,7 +82,7 @@
 
 ### Error Cases
 
-- 400 Bad Request: invalid displayName or avatarUrl.
+- 400 Bad Request: invalid displayName or timezone.
 - 401 Unauthorized: invalid or missing JWT.
 - 404 Not Found: user profile not found.
 

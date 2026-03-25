@@ -12,6 +12,7 @@ import { ReminderModule } from './reminder/reminder.module';
 import { RecurringModule } from './recurring/recurring.module';
 import { NotificationModule } from './notification/notification.module';
 import { StatisticsModule } from './statistics/statistics.module';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { StatisticsModule } from './statistics/statistics.module';
     RecurringModule,
     NotificationModule,
     StatisticsModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [AppService],

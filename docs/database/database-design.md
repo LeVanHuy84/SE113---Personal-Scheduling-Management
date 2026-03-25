@@ -33,7 +33,7 @@ Root entity:
 
 Internal entities / value objects:
 
-- UserProfile (VO: display name, avatar URL)
+- UserProfile (VO: display name)
 - Credential (VO: password hash metadata)
 
 Invariants:
@@ -174,7 +174,6 @@ Fields:
 - `email varchar(255) not null unique`: login identity
 - `password_hash varchar(255) not null`: hashed credential
 - `display_name varchar(100) null`: profile name
-- `avatar_url varchar(1024) null`: profile avatar
 - `created_at timestamptz not null default now()`: creation time
 - `updated_at timestamptz not null default now()`: last update
 - `deleted_at timestamptz null`: soft-delete marker (optional); physical delete can still be used for DI-2
