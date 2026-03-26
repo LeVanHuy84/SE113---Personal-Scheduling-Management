@@ -22,9 +22,9 @@
 
 #### CreateAuthLogoutRequestDto
 
-| Field        | Type   | Required | Validation                                                 |
-| ------------ | ------ | -------- | ---------------------------------------------------------- |
-| refreshToken | string | No       | optional if server uses token blacklist/invalidation store |
+| Field        | Type   | Required | Constraints                         |
+| ------------ | ------ | -------- | ----------------------------------- |
+| refreshToken | string | No       | - If provided → must be valid token |
 
 ### Response DTO
 
@@ -57,9 +57,9 @@
 
 #### CreateAuthRefreshRequestDto
 
-| Field        | Type   | Required | Validation                      |
-| ------------ | ------ | -------- | ------------------------------- |
-| refreshToken | string | Yes      | valid non-expired refresh token |
+| Field        | Type   | Required | Constraints                                                                                  |
+| ------------ | ------ | -------- | -------------------------------------------------------------------------------------------- |
+| refreshToken | string | Yes      | - Must be valid token<br>- Must not be expired<br>- Must match stored token (rotation check) |
 
 ### Response DTO
 

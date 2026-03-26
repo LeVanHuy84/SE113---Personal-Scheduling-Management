@@ -653,4 +653,135 @@ describe('AuthController (integration)', () => {
       'Invalid or expired reset token',
     );
   });
+
+  describe('AuthController - DTO Validation', () => {
+    // ===== LOGIN =====
+    it('should fail login when email is whitespace', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: '   ', password: 'ValidPass123' })
+        .expect(400);
+    });
+
+    it('should fail login when password is empty', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: 'test@example.com', password: '' })
+        .expect(400);
+    });
+
+    it('should trim email before validation (login)', async () => {
+      const register = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          email: 'trim-login@example.com',
+          password: 'ValidPass123',
+          displayName: 'Trim User',
+        })
+        .expect(201);
+
+      const token = await authService.generateVerificationToken(
+        register.body.data.id,
+      );
+
+      await request(app.getHttpServer())
+        .post('/auth/verify-email')
+        .send({ token })
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({
+          email: '  trim-login@example.com  ',
+          password: 'ValidPass123',
+        })
+        .expect(200);
+    });
+
+    // ===== REGISTER =====
+    it('should fail register when displayName is whitespace', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          email: 'ws-display@example.com',
+          password: 'ValidPass123',
+          displayName: '   ',
+        })
+        .expect(400);
+    });
+
+    it('should fail register when password < 8 chars', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          email: 'short-pass@example.com',
+          password: '1234567',
+          displayName: 'Short Pass',
+        })
+        .expect(400);
+    });
+
+    it('should fail register when email is whitespace', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          email: '   ',
+          password: 'ValidPass123',
+          displayName: 'Test',
+        })
+        .expect(400);
+    });
+
+    // ===== VERIFY EMAIL =====
+    it('should fail verify-email when token is empty', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/verify-email')
+        .send({ token: '' })
+        .expect(400);
+    });
+
+    it('should fail verify-email when token is whitespace', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/verify-email')
+        .send({ token: '   ' })
+        .expect(400);
+    });
+
+    // ===== FORGOT PASSWORD =====
+    it('should fail forgot-password when email is whitespace', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/forgot-password')
+        .send({ email: '   ' })
+        .expect(400);
+    });
+
+    // ===== RESET PASSWORD =====
+    it('should fail reset-password when newPassword is whitespace', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({
+          token: 'some-token',
+          newPassword: '   ',
+        })
+        .expect(400);
+    });
+
+    it('should fail reset-password when newPassword < 8 chars', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/reset-password')
+        .send({
+          token: 'some-token',
+          newPassword: '1234567',
+        })
+        .expect(400);
+    });
+
+    // ===== RESEND VERIFY =====
+    it('should fail resend-verification-email when email is whitespace', async () => {
+      await request(app.getHttpServer())
+        .post('/auth/resend-verification-email')
+        .send({ email: '   ' })
+        .expect(400);
+    });
+  });
 });

@@ -25,11 +25,11 @@
 
 #### CreateAuthRegisterRequestDto
 
-| Field       | Type   | Required | Validation                                                             |
-| ----------- | ------ | -------- | ---------------------------------------------------------------------- |
-| email       | string | Yes      | must be valid email format; max length 255; unique across users (BR-1) |
-| password    | string | Yes      | min length 8; max length 255; stored hashed only (BR-32)               |
-| displayName | string | Yes      | min length 1; max length 100                                           |
+| Field       | Type   | Required | Constraints                                                                                                                       |
+| ----------- | ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| email       | string | Yes      | - Must be valid email format<br>- Max length: 255<br>- Must be unique (BR-1)<br>- Case-insensitive                                |
+| password    | string | Yes      | - Min length: 8<br>- Max length: 255<br>- Should include at least 1 letter and 1 number (recommended)<br>- Stored as hash (BR-32) |
+| displayName | string | Yes      | - Min length: 1<br>- Max length: 100<br>- Must not be blank or whitespace-only                                                    |
 
 ### Response DTO
 
@@ -66,10 +66,10 @@
 
 #### CreateAuthLoginRequestDto
 
-| Field    | Type   | Required | Validation                                 |
-| -------- | ------ | -------- | ------------------------------------------ |
-| email    | string | Yes      | must be valid email format; max length 255 |
-| password | string | Yes      | required; max length 255                   |
+| Field    | Type   | Required | Constraints                               |
+| -------- | ------ | -------- | ----------------------------------------- |
+| email    | string | Yes      | - Valid email format<br>- Max length: 255 |
+| password | string | Yes      | - Required<br>- Max length: 255           |
 
 ### Response DTO
 
@@ -107,9 +107,9 @@
 
 #### CreateVerifyEmailRequestDto
 
-| Field | Type   | Required | Validation                          |
-| ----- | ------ | -------- | ----------------------------------- |
-| token | string | Yes      | non-empty; valid verification token |
+| Field | Type   | Required | Constraints                                                                                        |
+| ----- | ------ | -------- | -------------------------------------------------------------------------------------------------- |
+| token | string | Yes      | - Must not be empty<br>- Must be valid token format (JWT/UUID tùy design)<br>- Must not be expired |
 
 ### Response DTO
 
@@ -144,9 +144,9 @@
 
 #### CreateResendVerificationEmailRequestDto
 
-| Field | Type   | Required | Validation                                 |
-| ----- | ------ | -------- | ------------------------------------------ |
-| email | string | Yes      | must be valid email format; max length 255 |
+| Field | Type   | Required | Constraints                               |
+| ----- | ------ | -------- | ----------------------------------------- |
+| email | string | Yes      | - Valid email format<br>- Max length: 255 |
 
 ### Response DTO
 
@@ -179,9 +179,9 @@
 
 #### CreatePasswordResetRequestDto
 
-| Field | Type   | Required | Validation                         |
-| ----- | ------ | -------- | ---------------------------------- |
-| email | string | Yes      | valid email format; max length 255 |
+| Field | Type   | Required | Constraints                               |
+| ----- | ------ | -------- | ----------------------------------------- |
+| email | string | Yes      | - Valid email format<br>- Max length: 255 |
 
 ### Response DTO
 
@@ -215,10 +215,10 @@
 
 #### CreateConfirmPasswordResetRequestDto
 
-| Field       | Type   | Required | Validation                                               |
-| ----------- | ------ | -------- | -------------------------------------------------------- |
-| token       | string | Yes      | non-empty; must map to valid non-expired reset token     |
-| newPassword | string | Yes      | min length 8; max length 255; stored hashed only (BR-32) |
+| Field       | Type   | Required | Constraints                                                                                          |
+| ----------- | ------ | -------- | ---------------------------------------------------------------------------------------------------- |
+| token       | string | Yes      | - Must not be empty<br>- Must map to valid reset token<br>- Must not be expired                      |
+| newPassword | string | Yes      | - Min length: 8<br>- Max length: 255<br>- Should include complexity rule<br>- Stored as hash (BR-32) |
 
 ### Response DTO
 
