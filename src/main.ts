@@ -25,4 +25,4 @@ async function bootstrap() {
     `🚀 Application is running on: http://localhost:${port}/${globalPrefix}/v1`,
   );
 }
-bootstrap();
+void bootstrap();
