@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { setupApplication } from '../common/setup-app';
 import { EmailService } from '../email/email.service';
+import { RedisService } from '../common/redis/redis.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthModule } from './auth.module';
 import { AuthService } from './auth.service';
@@ -47,6 +48,15 @@ describe('AuthController (integration)', () => {
   const emailServiceMock = {
     sendVerificationEmail: jest.fn(),
     sendPasswordResetEmail: jest.fn(),
+  };
+  const redisServiceMock = {
+    get: jest.fn(),
+    set: jest.fn(),
+    setex: jest.fn(),
+    del: jest.fn(),
+    ttl: jest.fn(),
+    getClient: jest.fn(),
+    onModuleDestroy: jest.fn(),
   };
 
   const prismaMock = {
@@ -143,6 +153,8 @@ describe('AuthController (integration)', () => {
       .useValue(prismaMock)
       .overrideProvider(EmailService)
       .useValue(emailServiceMock)
+      .overrideProvider(RedisService)
+      .useValue(redisServiceMock)
       .compile();
 
     authService = moduleFixture.get(AuthService);

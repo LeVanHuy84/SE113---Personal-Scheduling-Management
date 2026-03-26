@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { setupApplication } from '../common/setup-app';
+import { RedisService } from '../common/redis/redis.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserModule } from './user.module';
 
@@ -81,6 +82,16 @@ describe('UserController (integration)', () => {
     },
   };
 
+  const redisServiceMock = {
+    get: jest.fn(),
+    set: jest.fn(),
+    setex: jest.fn(),
+    del: jest.fn(),
+    ttl: jest.fn(),
+    getClient: jest.fn(),
+    onModuleDestroy: jest.fn(),
+  };
+
   const seedUser = (overrides: Partial<MockUser> = {}): MockUser => {
     const user: MockUser = {
       id: overrides.id ?? 'user-1',
@@ -120,6 +131,8 @@ describe('UserController (integration)', () => {
     })
       .overrideProvider(PrismaService)
       .useValue(prismaMock)
+      .overrideProvider(RedisService)
+      .useValue(redisServiceMock)
       .compile();
 
     jwtService = moduleFixture.get(JwtService);

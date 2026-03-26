@@ -10,11 +10,14 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'node:crypto';
+import { RedisService } from '../common/redis/redis.service';
 import { AuthRepository } from './repositories/auth.repository';
 import { CreateAuthLoginRequestDto } from './dto/create-auth-login-request.dto';
 import { CreateAuthRegisterRequestDto } from './dto/create-auth-register-request.dto';
 import {
   JwtPayload,
+  RefreshJwtPayload,
   ResetJwtPayload,
   VerificationJwtPayload,
 } from './interfaces/jwt-payload.interface';
@@ -27,6 +30,7 @@ type LoginMetadata = {
 
 type LoginResponse = {
   accessToken: string;
+  refreshToken: string;
   tokenType: 'Bearer';
   expiresIn: number;
 };
@@ -55,9 +59,11 @@ type ResetPasswordResponse = {
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private readonly accessTokenTtlSeconds: number;
+  private readonly refreshTokenTtlSeconds: number;
   private readonly verificationTokenTtlSeconds: number;
   private readonly resetTokenTtlSeconds: number;
   private readonly accessSecret: string;
+  private readonly refreshSecret: string;
   private readonly verificationSecret: string;
   private readonly resetSecret: string;
 
@@ -66,12 +72,17 @@ export class AuthService {
     private readonly emailService: EmailService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
   ) {
     this.accessTokenTtlSeconds = Number(
       this.configService.get<string>('JWT_ACCESS_EXPIRES_IN_SECONDS') ?? 3600,
     );
     this.verificationTokenTtlSeconds = Number(
       this.configService.get<string>('JWT_VERIFY_EXPIRES_IN_SECONDS') ?? 86400,
+    );
+    this.refreshTokenTtlSeconds = Number(
+      this.configService.get<string>('JWT_REFRESH_EXPIRES_IN_SECONDS') ??
+        604800,
     );
     this.resetTokenTtlSeconds = Number(
       this.configService.get<string>('JWT_RESET_EXPIRES_IN_SECONDS') ?? 900,
@@ -82,6 +93,9 @@ export class AuthService {
     this.verificationSecret =
       this.configService.get<string>('JWT_VERIFY_SECRET') ??
       'psms-verify-secret';
+    this.refreshSecret =
+      this.configService.get<string>('JWT_REFRESH_SECRET') ??
+      'psms-refresh-secret';
     this.resetSecret =
       this.configService.get<string>('JWT_RESET_SECRET') ?? 'psms-reset-secret';
   }
@@ -181,18 +195,114 @@ export class AuthService {
       userAgent: metadata.userAgent,
     });
 
-    const payload: JwtPayload = {
+    return this.generateTokens({
+      id: user.id,
+      email: user.email,
+    });
+  }
+
+  async generateTokens(user: {
+    id: string;
+    email: string;
+  }): Promise<LoginResponse> {
+    const jti = randomUUID();
+    const accessPayload: JwtPayload = {
       sub: user.id,
       email: user.email,
     };
 
-    return {
-      accessToken: await this.jwtService.signAsync(payload, {
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(accessPayload, {
         secret: this.accessSecret,
         expiresIn: `${this.accessTokenTtlSeconds}s`,
       }),
+      this.jwtService.signAsync(
+        {
+          sub: user.id,
+          type: 'refresh',
+          jti,
+        },
+        {
+          secret: this.refreshSecret,
+          expiresIn: `${this.refreshTokenTtlSeconds}s`,
+        },
+      ),
+    ]);
+
+    return {
+      accessToken,
+      refreshToken,
       tokenType: 'Bearer',
       expiresIn: this.accessTokenTtlSeconds,
+    };
+  }
+
+  async refreshToken(refreshToken: string): Promise<LoginResponse> {
+    let payload: RefreshJwtPayload;
+
+    try {
+      payload = await this.jwtService.verifyAsync<RefreshJwtPayload>(
+        refreshToken,
+        {
+          secret: this.refreshSecret,
+        },
+      );
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    if (payload.type !== 'refresh' || !payload.jti) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const blacklistKey = this.getBlacklistKey(payload.jti);
+    const isRevoked = await this.redisService.get<string>(blacklistKey);
+
+    if (isRevoked) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const user = await this.authRepository.findUserById(payload.sub);
+    if (!user) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    await this.revokeByPayload(payload);
+
+    return this.generateTokens({
+      id: user.id,
+      email: user.email,
+    });
+  }
+
+  async logout(
+    refreshToken?: string,
+  ): Promise<{ success: boolean; message: string }> {
+    if (!refreshToken) {
+      return {
+        success: true,
+        message: 'Logged out successfully',
+      };
+    }
+
+    try {
+      const payload = await this.jwtService.verifyAsync<RefreshJwtPayload>(
+        refreshToken,
+        {
+          secret: this.refreshSecret,
+        },
+      );
+
+      if (payload.type === 'refresh' && payload.jti) {
+        await this.revokeByPayload(payload);
+      }
+    } catch {
+      // Intentionally ignore to keep logout idempotent and avoid token probing.
+    }
+
+    return {
+      success: true,
+      message: 'Logged out successfully',
     };
   }
 
@@ -391,5 +501,22 @@ export class AuthService {
       ip: input.ip,
       userAgent: input.userAgent,
     });
+  }
+
+  private getBlacklistKey(jti: string): string {
+    return `blacklist:${jti}`;
+  }
+
+  private async revokeByPayload(payload: RefreshJwtPayload): Promise<void> {
+    const ttlSeconds = payload.exp - Math.floor(Date.now() / 1000);
+    if (ttlSeconds <= 0) {
+      return;
+    }
+
+    await this.redisService.setex(
+      this.getBlacklistKey(payload.jti),
+      ttlSeconds,
+      '1',
+    );
   }
 }

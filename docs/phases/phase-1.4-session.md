@@ -1,8 +1,8 @@
-# Phase 1.4 – Session Management (Advanced, Optional)
+# Phase 1.4 – Secure Token Session (Hybrid: JWT + Redis)
 
 ## Goal
 
-Implement advanced session management features for enhanced security.
+Implement secure session management using JWT with Redis-based revocation and token rotation.
 
 ---
 
@@ -10,33 +10,19 @@ Implement advanced session management features for enhanced security.
 
 ### In scope
 
-- Logout (invalidate current session)
-- Refresh token (extend session)
-- Token rotation (optional)
+- Refresh token (JWT)
+- Token rotation
+- Logout with token revocation (Redis)
+- Blacklist mechanism
 
 ### Out of scope
 
-- Multi-device session management
-- Session persistence across server restarts
+- Full session storage in DB
+- Multi-device session tracking (optional future)
 
 ---
 
 ## APIs
-
-### POST /auth/logout
-
-Request:
-{
-"refreshToken": "string (optional)"
-}
-
-Response:
-{
-"success": true,
-"message": "Logged out successfully"
-}
-
----
 
 ### POST /auth/refresh
 
@@ -49,38 +35,68 @@ Response:
 {
 "accessToken": "string",
 "tokenType": "Bearer",
-"expiresIn": 3600,
-"refreshToken": "string (new)"
+"expiresIn": 900,
+"refreshToken": "string"
+}
+
+---
+
+### POST /auth/logout
+
+Request:
+{
+"refreshToken": "string"
+}
+
+Response:
+{
+"success": true,
+"message": "Logged out successfully"
 }
 
 ---
 
 ## Business Rules
 
-- Logout requires valid JWT
-- Refresh token must be valid and non-expired
-- Token rotation for security
-- Session invalidation on logout
+- Refresh token MUST be JWT
+- MUST include:
+  - sub (userId)
+  - type = refresh
+  - jti (unique token id)
+- Redis MUST store revoked token identifiers (jti)
+- Refresh token MUST be rotated on each refresh
+- Old refresh token MUST be revoked after rotation
+- Access token remains stateless
 
 ---
 
 ## Edge Cases
 
-- Invalid refresh token
-- Expired refresh token
-- Missing JWT for logout
+- Refresh token reused after rotation (replay attack)
+- Token exists in blacklist
+- Expired token
+- Invalid signature
+- Missing jti
 
 ---
 
 ## Done Criteria
 
-- User can logout and invalidate session
-- User can refresh access token
-- Token rotation implemented (optional)
+- Refresh token works with rotation
+- Old tokens cannot be reused
+- Logout revokes refresh token via Redis
+- Blacklist enforced on refresh
 - API matches docs/api-contract/session.api.md
 
 ---
 
-## Note
+## Notes
 
-This phase is optional and can be implemented after core authentication is stable.
+- Redis is used as ephemeral store (TTL = token expiry)
+- System remains mostly stateless
+- Suitable for scalable production systems
+
+## Reference
+
+- docs\skills\auth\auth-session.md
+- docs\test\test-session.md

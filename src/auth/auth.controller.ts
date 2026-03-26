@@ -14,6 +14,8 @@ import { CreateResetPasswordRequestDto } from './dto/create-reset-password-reque
 import { CreateVerifyEmailRequestDto } from './dto/create-verify-email-request.dto';
 import { AuthService } from './auth.service';
 import { CreateResendVerificationEmailRequestDto } from './dto/create-resend-verification-email-request.dto';
+import { CreateAuthRefreshRequestDto } from './dto/create-auth-refresh-request.dto';
+import { CreateAuthLogoutRequestDto } from './dto/create-auth-logout-request.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -57,5 +59,17 @@ export class AuthController {
       ip: req.ip,
       userAgent: req.get('user-agent') ?? null,
     });
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(@Body() dto: CreateAuthRefreshRequestDto) {
+    return this.authService.refreshToken(dto.refreshToken);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(@Body() dto: CreateAuthLogoutRequestDto) {
+    return this.authService.logout(dto.refreshToken);
   }
 }

@@ -12,6 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { AuthRepository } from './repositories/auth.repository';
 import { EmailService } from '../email/email.service';
+import { RedisService } from '../common/redis/redis.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -19,6 +20,7 @@ describe('AuthService', () => {
   let emailService: jest.Mocked<EmailService>;
   let jwtService: jest.Mocked<JwtService>;
   let configService: jest.Mocked<ConfigService>;
+  let redisService: jest.Mocked<RedisService>;
   let loggerErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
@@ -48,9 +50,11 @@ describe('AuthService', () => {
       get: jest.fn((key: string) => {
         const values: Record<string, string> = {
           JWT_ACCESS_SECRET: 'access-secret',
+          JWT_REFRESH_SECRET: 'refresh-secret',
           JWT_VERIFY_SECRET: 'verify-secret',
           JWT_RESET_SECRET: 'reset-secret',
           JWT_ACCESS_EXPIRES_IN_SECONDS: '3600',
+          JWT_REFRESH_EXPIRES_IN_SECONDS: '604800',
           JWT_VERIFY_EXPIRES_IN_SECONDS: '86400',
           JWT_RESET_EXPIRES_IN_SECONDS: '900',
         };
@@ -59,11 +63,22 @@ describe('AuthService', () => {
       }),
     } as unknown as jest.Mocked<ConfigService>;
 
+    redisService = {
+      get: jest.fn(),
+      set: jest.fn(),
+      setex: jest.fn(),
+      del: jest.fn(),
+      ttl: jest.fn(),
+      getClient: jest.fn(),
+      onModuleDestroy: jest.fn(),
+    } as unknown as jest.Mocked<RedisService>;
+
     service = new AuthService(
       authRepository,
       emailService,
       jwtService,
       configService,
+      redisService,
     );
 
     loggerErrorSpy = jest
@@ -261,7 +276,9 @@ describe('AuthService', () => {
       passwordHash,
       isVerified: true,
     } as never);
-    (jwtService.signAsync as jest.Mock).mockResolvedValue('access-token');
+    (jwtService.signAsync as jest.Mock)
+      .mockResolvedValueOnce('access-token')
+      .mockResolvedValueOnce('refresh-token');
 
     const result = await service.login(
       { email: 'user@example.com', password: 'ValidPass123' },
@@ -270,6 +287,7 @@ describe('AuthService', () => {
 
     expect(result).toEqual({
       accessToken: 'access-token',
+      refreshToken: 'refresh-token',
       tokenType: 'Bearer',
       expiresIn: 3600,
     });
@@ -461,5 +479,98 @@ describe('AuthService', () => {
     await expect(
       service.resetPassword('used-reset-token', 'NewValidPass123'),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('refresh success returns rotated tokens', async () => {
+    (jwtService.verifyAsync as jest.Mock).mockResolvedValue({
+      sub: 'user-1',
+      type: 'refresh',
+      jti: 'old-jti',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+    redisService.get.mockResolvedValue(null);
+    authRepository.findUserById.mockResolvedValue({
+      id: 'user-1',
+      email: 'user@example.com',
+    } as never);
+    (jwtService.signAsync as jest.Mock)
+      .mockResolvedValueOnce('new-access-token')
+      .mockResolvedValueOnce('new-refresh-token');
+
+    const result = await service.refreshToken('valid-refresh-token');
+
+    expect(redisService.get).toHaveBeenCalledWith('blacklist:old-jti');
+    expect(redisService.setex).toHaveBeenCalledWith(
+      'blacklist:old-jti',
+      expect.any(Number),
+      '1',
+    );
+    expect(result).toEqual({
+      accessToken: 'new-access-token',
+      refreshToken: 'new-refresh-token',
+      tokenType: 'Bearer',
+      expiresIn: 3600,
+    });
+  });
+
+  it('refresh with revoked token throws unauthorized', async () => {
+    (jwtService.verifyAsync as jest.Mock).mockResolvedValue({
+      sub: 'user-1',
+      type: 'refresh',
+      jti: 'revoked-jti',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+    redisService.get.mockResolvedValue('1');
+
+    await expect(
+      service.refreshToken('revoked-refresh-token'),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(redisService.setex).not.toHaveBeenCalled();
+  });
+
+  it('rotation invalidates old token jti', async () => {
+    (jwtService.verifyAsync as jest.Mock).mockResolvedValue({
+      sub: 'user-1',
+      type: 'refresh',
+      jti: 'rotate-jti',
+      exp: Math.floor(Date.now() / 1000) + 600,
+    });
+    redisService.get.mockResolvedValue(null);
+    authRepository.findUserById.mockResolvedValue({
+      id: 'user-1',
+      email: 'user@example.com',
+    } as never);
+    (jwtService.signAsync as jest.Mock)
+      .mockResolvedValueOnce('access-token-2')
+      .mockResolvedValueOnce('refresh-token-2');
+
+    await service.refreshToken('token-to-rotate');
+
+    expect(redisService.setex).toHaveBeenCalledWith(
+      'blacklist:rotate-jti',
+      expect.any(Number),
+      '1',
+    );
+  });
+
+  it('logout revokes provided refresh token', async () => {
+    (jwtService.verifyAsync as jest.Mock).mockResolvedValue({
+      sub: 'user-1',
+      type: 'refresh',
+      jti: 'logout-jti',
+      exp: Math.floor(Date.now() / 1000) + 1200,
+    });
+
+    const result = await service.logout('logout-refresh-token');
+
+    expect(redisService.setex).toHaveBeenCalledWith(
+      'blacklist:logout-jti',
+      expect.any(Number),
+      '1',
+    );
+    expect(result).toEqual({
+      success: true,
+      message: 'Logged out successfully',
+    });
   });
 });
