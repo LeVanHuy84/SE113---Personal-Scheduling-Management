@@ -31,6 +31,7 @@ import { UserModule } from './user/user.module';
     RecurringModule,
     NotificationModule,
     StatisticsModule,
+    AppointmentModule,
     UserModule,
   ],
   controllers: [AppController],
