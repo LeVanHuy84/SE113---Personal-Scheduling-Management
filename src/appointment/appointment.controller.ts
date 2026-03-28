@@ -5,32 +5,31 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Param,
   Post,
-  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPrincipal } from '../auth/interfaces/current-user.interface';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CreateAppointmentRequestDto } from './dto/create-appointment-request.dto';
-import { AppointmentResponseDto } from './dto/appointment-response.dto';
+import { CreateAppointmentSeriesRequestDto } from './dto/create-appointment-request.dto';
 import { GetAppointmentByIdParamsDto } from './dto/get-appointment-by-id-params.dto';
-import { GetAppointmentsQueryDto } from './dto/get-appointments-query.dto';
+import { AppointmentSeriesQueryDto } from './dto/get-appointments-query.dto';
 import { AppointmentService } from './appointment.service';
-import { UpdateAppointmentRequestDto } from './dto/update-appointment-request.dto';
+import { UpdateAppointmentSeriesRequestDto } from './dto/update-appointment-request.dto';
 import { DeleteAppointmentQueryDto } from './dto/delete-appointment-query.dto';
 
 @Controller('appointments')
 @UseGuards(JwtAuthGuard)
 export class AppointmentController {
-  constructor(private readonly appointmentService: AppointmentService) {}
+  constructor(private readonly appointmentService: AppointmentService) { }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(
-    @Body() dto: CreateAppointmentRequestDto,
+    @Body() dto: CreateAppointmentSeriesRequestDto,
     @CurrentUser() user: CurrentUserPrincipal,
   ): Promise<{ id: string }> {
     return this.appointmentService.createAppointment(user.userId, dto);
@@ -38,33 +37,22 @@ export class AppointmentController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  getAppointments(
-    @Query() dto: GetAppointmentsQueryDto,
-    @CurrentUser() user: CurrentUserPrincipal,
+  getAppointmentSeries(
+    @Query() query: AppointmentSeriesQueryDto,
   ) {
-    return this.appointmentService.getAppointments(user.userId, dto);
+    return this.appointmentService.getAppointments(query);
   }
 
-  @Get(':id')
-  @HttpCode(HttpStatus.OK)
-  getAppointmentById(
-    @Param() params: GetAppointmentByIdParamsDto,
-    @CurrentUser() user: CurrentUserPrincipal,
-  ): Promise<AppointmentResponseDto> {
-    return this.appointmentService.getAppointmentById(
-      user.userId,
-      params.id,
-    );
-  }
 
-  @Put(':id')
+  @Patch(':id')
   @HttpCode(HttpStatus.OK)
-  updateAppointment(
+  updateAppointmentSeries(
     @Param() params: GetAppointmentByIdParamsDto,
-    @Body() dto: UpdateAppointmentRequestDto,
+    @Body() dto: UpdateAppointmentSeriesRequestDto,
     @CurrentUser() user: CurrentUserPrincipal,
-  ): Promise<AppointmentResponseDto> {
-    return this.appointmentService.updateAppointment(
+  ): Promise<{ id: string }> {
+
+    return this.appointmentService.updateAppointmentSeries(
       user.userId,
       params.id,
       dto,
@@ -77,7 +65,7 @@ export class AppointmentController {
     @Param() params: GetAppointmentByIdParamsDto,
     @Query() query: DeleteAppointmentQueryDto,
     @CurrentUser() user: CurrentUserPrincipal,
-  ): Promise<{ success: boolean; deletedCount: number }> {
+  ) {
     return this.appointmentService.deleteAppointment(user.userId, params.id, query);
   }
 }

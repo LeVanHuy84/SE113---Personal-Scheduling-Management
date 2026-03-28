@@ -1,22 +1,9 @@
-import { Transform } from 'class-transformer';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsOptional, IsUUID } from 'class-validator';
+import { PaginationQuery } from 'src/common/dto/pagination.query';
 
-export class GetAppointmentsQueryDto {
+export class AppointmentSeriesQueryDto extends PaginationQuery {
   @IsOptional()
-  @Transform(({ value }) =>
-    value === undefined ? value : Number(value),
-  )
-  @IsInt()
-  @Min(1)
-  page: number = 1;
-
-  @IsOptional()
-  @Transform(({ value }) =>
-    value === undefined ? value : Number(value),
-  )
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  limit: number = 10;
+  @IsUUID('4')
+  userId?: string;
 }
 

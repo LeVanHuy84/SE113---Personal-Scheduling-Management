@@ -1,0 +1,23 @@
+sequenceDiagram
+    actor User
+    participant API
+    participant Service
+    participant DB
+    participant Queue
+
+    User->>API: DELETE /appointments/:seriesId
+    API->>Service: delete()
+
+    alt Not found (BR-5)
+        Service-->>API: 404 NOT_FOUND
+    else OK
+        Service->>DB: Delete AppointmentSeries
+
+        %% cleanup
+        Service->>DB: get future appointments
+        Service->>Queue: cancel delay jobs
+        Service->>DB: delete future appointments
+        Service->>DB: delete future reminders
+
+        Service-->>API: 200 DELETED
+    end

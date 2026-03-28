@@ -11,24 +11,24 @@ export class AppointmentTimeRangeValidator
   implements ValidatorConstraintInterface
 {
   validate(_value: unknown, args: ValidationArguments): boolean {
-    const dto = args.object as { startTime?: Date; endTime?: Date };
-    const { startTime, endTime } = dto;
+    const dto = args.object as { startAt?: Date; endAt?: Date };
+    const { startAt, endAt } = dto;
 
-    if (!(startTime instanceof Date) || isNaN(startTime.getTime())) {
+    if (!(startAt instanceof Date) || isNaN(startAt.getTime())) {
       return false;
     }
 
-    if (!(endTime instanceof Date) || isNaN(endTime.getTime())) {
+    if (!(endAt instanceof Date) || isNaN(endAt.getTime())) {
       return false;
     }
 
     // BR-7: cannot be created in the past.
-    if (startTime.getTime() < Date.now()) {
+    if (startAt.getTime() < Date.now()) {
       return false;
     }
 
-    // BR-6: startTime must be earlier than endTime.
-    if (startTime.getTime() >= endTime.getTime()) {
+    // BR-6: startAt must be earlier than endAt.
+    if (startAt.getTime() >= endAt.getTime()) {
       return false;
     }
 

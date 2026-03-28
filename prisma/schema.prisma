@@ -7,6 +7,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum AuthAttemptResult {
+  SUCCESS
+  FAILURE
+}
+
+enum Weekday {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
+}
+
 enum AppointmentStatus {
   SCHEDULED
   COMPLETED
@@ -14,10 +29,12 @@ enum AppointmentStatus {
   MISSED
 }
 
-enum RecurrenceFrequency {
+enum RecurrenceType {
+  ONETIME
   DAILY
   WEEKLY
   MONTHLY
+  YEARLY
 }
 
 enum AppointmentSourceKind {
@@ -43,164 +60,164 @@ enum NotificationType {
   SYSTEM
 }
 
-enum AuthAttemptResult {
-  SUCCESS
-  FAILURE
-}
-
 model User {
-  id            String              @id @default(uuid()) @db.Uuid
-  email         String              @unique @db.VarChar(255)
-  passwordHash  String              @map("password_hash") @db.VarChar(255)
-  passwordResetTokenHash String?    @map("password_reset_token_hash") @db.VarChar(255)
-  passwordResetExpiresAt DateTime?  @map("password_reset_expires_at") @db.Timestamptz(6)
-  isVerified    Boolean             @default(false) @map("is_verified")
-  displayName   String?             @map("display_name") @db.VarChar(100)
-  timezone      String              @default("UTC") @db.VarChar(64)
-  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt     DateTime?           @map("deleted_at") @db.Timestamptz(6)
-  series        AppointmentSeries[]
-  appointments  Appointment[]
-  tags          Tag[]
-  reminders     Reminder[]
-  notifications Notification[]
-  authAttempts  AuthAttempt[]
-  monthlyStats  UserMonthlyStat[]
+  id                     String              @id @default(uuid()) @db.Uuid
+  email                  String              @unique @db.VarChar(255)
+  passwordHash           String              @map("password_hash") @db.VarChar(255)
+  passwordResetTokenHash String?             @map("password_reset_token_hash") @db.VarChar(255)
+  passwordResetExpiresAt DateTime?           @map("password_reset_expires_at") @db.Timestamptz(6)
+  isVerified             Boolean             @default(false) @map("is_verified")
+  displayName            String?             @map("display_name") @db.VarChar(100)
+  timezone               String              @default("UTC") @db.VarChar(64)
+  createdAt              DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt              DateTime?           @map("deleted_at") @db.Timestamptz(6)
+  series                 AppointmentSeries[]
+  appointments           Appointment[]
+  tags                   Tag[]
+  reminders              Reminder[]
+  notifications          Notification[]
+  authAttempts           AuthAttempt[]
+  monthlyStats           UserMonthlyStat[]
 
   @@map("users")
 }
 
+// ================= SERIES =================
 model AppointmentSeries {
-  id                  String               @id @default(uuid()) @db.Uuid
-  userId              String               @map("user_id") @db.Uuid
-  title               String               @db.VarChar(255)
-  description         String?
-  recurrenceFreq      RecurrenceFrequency  @map("recurrence_freq")
-  recurrenceInterval  Int                  @default(1) @map("recurrence_interval")
-  recurrenceByDay     String[]             @default([]) @map("recurrence_by_day") @db.VarChar(32)
-  recurrenceDayOfMonth Int?                @map("recurrence_day_of_month") @db.SmallInt
-  recurrenceCount     Int?                 @map("recurrence_count")
-  recurrenceUntil     DateTime?            @map("recurrence_until") @db.Timestamptz(6)
-  seriesTimezone      String               @map("series_timezone") @db.VarChar(64)
-  createdAt           DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt           DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
-  cancelledAt         DateTime?            @map("cancelled_at") @db.Timestamptz(6)
-  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  appointments        Appointment[]
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
 
-  @@index([userId, createdAt(sort: Desc)])
-  @@index([userId, cancelledAt])
+  title       String   @db.VarChar(255)
+  description String?
+  startAt     DateTime @map("start_at") @db.Timestamptz(6)
+  endAt       DateTime @map("end_at") @db.Timestamptz(6)
+
+  recurrenceType RecurrenceType @map("recurrence_type")
+  // recurrenceInterval   Int                 @default(1) @map("recurrence_interval")
+  // recurrenceByDay      Weekday[]           @map("recurrence_by_day")
+  // recurrenceDayOfMonth Int?                @map("recurrence_day_of_month") @db.SmallInt
+  // recurrenceCount      Int?                @map("recurrence_count")
+
+  // WEEKLY
+  weeklyDay   Weekday[] @map("weekly_day")
+  // MONTHLY
+  monthlyDay  Int?      @map("month_day")
+  // YEARLY
+  yearlyDay   Int?      @map("yearly_day")
+  yearlyMonth Int?      @map("yearly_month")
+
+  offsetMinutes  Int?      @map("offset_minutes")
+  seriesTimezone String    @map("series_timezone") @db.VarChar(64)
+  cancelledAt    DateTime? @map("cancelled_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+  tags         SeriesTag[]
+
+  @@index([userId])
   @@map("appointment_series")
 }
 
+// ================= APPOINTMENT =================
 model Appointment {
-  id                  String                @id @default(uuid()) @db.Uuid
-  userId              String                @map("user_id") @db.Uuid
-  seriesId            String?               @map("series_id") @db.Uuid
-  title               String                @db.VarChar(255)
-  description         String?
-  startsAt            DateTime              @map("starts_at") @db.Timestamptz(6)
-  endsAt              DateTime              @map("ends_at") @db.Timestamptz(6)
+  id       String   @id @default(uuid()) @db.Uuid
+  userId   String   @map("user_id") @db.Uuid
+  seriesId String   @map("series_id") @db.Uuid
+  startsAt DateTime @map("starts_at") @db.Timestamptz(6)
+  endsAt   DateTime @map("ends_at") @db.Timestamptz(6)
+
+  isRecurringInstance Boolean           @default(false) @map("is_recurring_instance")
   status              AppointmentStatus
-  isAllDay            Boolean               @default(false) @map("is_all_day")
-  isRecurringInstance Boolean               @default(false) @map("is_recurring_instance")
-  occurrenceIndex     Int?                  @map("occurrence_index")
-  sourceKind          AppointmentSourceKind @default(USER) @map("source_kind")
-  createdAt           DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt           DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt           DateTime?             @map("deleted_at") @db.Timestamptz(6)
-  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  series              AppointmentSeries?    @relation(fields: [seriesId], references: [id], onDelete: SetNull)
-  reminders           Reminder[]
-  notifications       Notification[]
-  tags                AppointmentTag[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  series        AppointmentSeries? @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  reminders     Reminder[]
+  notifications Notification[]
 
   @@index([userId, startsAt])
-  @@index([userId, status, startsAt])
-  @@index([seriesId, occurrenceIndex])
+  @@index([seriesId])
   @@map("appointments")
 }
 
+// ================= TAG =================
 model Tag {
-  id         String           @id @default(uuid()) @db.Uuid
-  userId     String           @map("user_id") @db.Uuid
-  name       String           @db.VarChar(50)
-  color      String?          @db.VarChar(16)
-  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt  DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt  DateTime?        @map("deleted_at") @db.Timestamptz(6)
-  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  taggedWith AppointmentTag[]
+  id     String  @id @default(uuid()) @db.Uuid
+  userId String  @map("user_id") @db.Uuid
+  name   String  @db.VarChar(50)
+  color  String? @db.VarChar(16)
 
-  @@index([userId, createdAt(sort: Desc)])
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  series SeriesTag[]
+
+  @@index([userId])
   @@map("tags")
 }
 
-model AppointmentTag {
-  appointmentId String      @map("appointment_id") @db.Uuid
-  tagId         String      @map("tag_id") @db.Uuid
-  assignedAt    DateTime    @default(now()) @map("assigned_at") @db.Timestamptz(6)
-  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  tag           Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
+// ================= SERIES TAG (NEW) =================
+model SeriesTag {
+  seriesId   String   @map("series_id") @db.Uuid
+  tagId      String   @map("tag_id") @db.Uuid
+  assignedAt DateTime @default(now()) @map("assigned_at") @db.Timestamptz(6)
 
-  @@id([appointmentId, tagId])
-  @@index([tagId, appointmentId])
-  @@map("appointment_tags")
+  series AppointmentSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  tag    Tag               @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([seriesId, tagId])
+  @@index([tagId])
+  @@map("series_tag")
 }
 
+// ================= REMINDER (NEW DESIGN) =================
 model Reminder {
-  id                String          @id @default(uuid()) @db.Uuid
-  appointmentId     String          @map("appointment_id") @db.Uuid
-  userId            String          @map("user_id") @db.Uuid
-  remindAt          DateTime        @map("remind_at") @db.Timestamptz(6)
-  nextTriggerAt     DateTime        @map("next_trigger_at") @db.Timestamptz(6)
-  state             ReminderState
-  triggeredAt       DateTime?       @map("triggered_at") @db.Timestamptz(6)
-  snoozeCount       Int             @default(0) @map("snooze_count")
-  lastSnoozeMinutes Int?            @map("last_snooze_minutes")
-  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
-  appointment       Appointment     @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  events            ReminderEvent[]
-  notifications     Notification[]
+  id            String @id @default(uuid()) @db.Uuid
+  appointmentId String @map("appointment_id") @db.Uuid
+  userId        String @map("user_id") @db.Uuid
+  jobId         String @unique @map("job_id")
 
-  @@index([appointmentId])
-  @@index([userId, state, nextTriggerAt])
+  occurrenceTime DateTime @map("occurrence_time") @db.Timestamptz(6)
+  nextTriggerAt  DateTime @map("next_trigger_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  appointment   Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+
+  @@index([userId, nextTriggerAt])
   @@map("reminders")
 }
 
-model ReminderEvent {
-  id         String            @id @default(uuid()) @db.Uuid
-  reminderId String            @map("reminder_id") @db.Uuid
-  eventType  ReminderEventType @map("event_type")
-  eventAt    DateTime          @default(now()) @map("event_at") @db.Timestamptz(6)
-  payload    Json?
-  reminder   Reminder          @relation(fields: [reminderId], references: [id], onDelete: Cascade)
-
-  @@index([reminderId, eventAt(sort: Desc)])
-  @@map("reminder_events")
-}
-
+// ================= NOTIFICATION =================
 model Notification {
-  id           String           @id @default(uuid()) @db.Uuid
-  userId       String           @map("user_id") @db.Uuid
-  appointmentId String?         @map("appointment_id") @db.Uuid
-  reminderId   String?          @map("reminder_id") @db.Uuid
-  type         NotificationType
-  message      String
-  scheduledAt  DateTime         @map("scheduled_at") @db.Timestamptz(6)
-  triggeredAt  DateTime?        @map("triggered_at") @db.Timestamptz(6)
-  readAt       DateTime?        @map("read_at") @db.Timestamptz(6)
-  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  appointment  Appointment?     @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
-  reminder     Reminder?        @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+  id            String  @id @default(uuid()) @db.Uuid
+  userId        String  @map("user_id") @db.Uuid
+  appointmentId String? @map("appointment_id") @db.Uuid
+  reminderId    String? @map("reminder_id") @db.Uuid
 
-  @@index([userId, createdAt(sort: Desc)])
+  type    NotificationType
+  message String
+
+  triggeredAt DateTime? @map("triggered_at") @db.Timestamptz(6)
+  readAt      DateTime? @map("read_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  reminder    Reminder?    @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+
   @@index([userId, readAt])
-  @@index([reminderId])
   @@map("notifications")
 }
 

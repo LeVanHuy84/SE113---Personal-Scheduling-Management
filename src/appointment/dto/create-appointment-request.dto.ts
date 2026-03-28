@@ -1,16 +1,26 @@
+import { RecurrenceType, Weekday } from '@prisma/client';
 import { Transform } from 'class-transformer';
 import {
-  IsBoolean,
+  ArrayNotEmpty,
+  ArrayUnique,
+  IsArray,
   IsDate,
+  IsEnum,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   Length,
+  Max,
   MaxLength,
+  Min,
+  ValidateIf
 } from 'class-validator';
 import { IsAppointmentTimeRange } from '../validators/appointment-time-range.decorator';
 
-export class CreateAppointmentRequestDto {
+
+export class CreateAppointmentSeriesRequestDto {
   @Transform(({ value }) =>
     typeof value === 'string' ? value.trim() : value,
   )
@@ -35,7 +45,7 @@ export class CreateAppointmentRequestDto {
   })
   @IsDate()
   @IsAppointmentTimeRange()
-  startTime!: Date;
+  startAt!: Date;
 
   @Transform(({ value }) => {
     if (value instanceof Date) {
@@ -47,10 +57,55 @@ export class CreateAppointmentRequestDto {
     return value;
   })
   @IsDate()
-  endTime!: Date;
+  endAt!: Date;
 
   @IsOptional()
-  @IsBoolean()
-  isAllDay?: boolean;
+  @IsNumber()
+  @Transform(({ value }) =>
+    value === undefined ? value : Number(value),
+  )
+  offsetMinutes?: number;
+
+  @IsEnum(RecurrenceType)
+  recurrenceType!: RecurrenceType;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsEnum(Weekday, { each: true })
+  weeklyDay: Weekday[];
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(31)
+  @ValidateIf(o => o.recurrenceType === 'MONTHLY')
+  monthlyDay?: number | null;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(31)
+  @ValidateIf(o => o.recurrenceType === 'YEARLY')
+  yearlyDay?: number | null;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(12)
+  @ValidateIf(o => o.recurrenceType === 'YEARLY')
+  yearlyMonth?: number;
+
+
+  @IsOptional()
+  @IsString()
+  @Length(1, 64)
+  seriesTimezone?: string;
+
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  tagIds: string[];
+
 }
 

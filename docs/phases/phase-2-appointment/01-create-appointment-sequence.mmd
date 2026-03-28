@@ -1,0 +1,34 @@
+sequenceDiagram
+    actor User
+    participant API
+    participant Service
+    participant DB
+    participant Cron
+    participant Queue
+    participant Mail
+
+    User->>API: POST /appointments
+    API->>Service: create(dto)
+
+    alt Invalid time (BR-6,7)
+        Service-->>API: 400 INVALID_TIME
+    else Conflict (BR-8)
+        Service-->>API: 409 CONFLICT
+    else Invalid recurrence (BR-9)
+        Service-->>API: 400 INVALID_RECURRENCE
+    else OK
+        Service->>DB: create AppointmentSeries
+        Service-->>API: 201 CREATED
+    end
+
+    %% ===== Cron generate =====
+    Cron->>DB: get active series
+    Cron->>Service: generate next 30 days
+    Service->>DB: create Appointment
+    Service->>DB: create Reminder
+    Service->>Queue: add delay job
+
+    %% ===== Reminder =====
+    Queue->>Queue: wait until remind time
+    Queue->>Mail: send email
+    Queue->>DB: update reminder + create notification
