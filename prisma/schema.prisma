@@ -75,7 +75,7 @@ model User {
   series                 AppointmentSeries[]
   appointments           Appointment[]
   tags                   Tag[]
-  reminders              Reminder[]
+  // reminders              Reminder[]
   notifications          Notification[]
   authAttempts           AuthAttempt[]
   monthlyStats           UserMonthlyStat[]
@@ -94,10 +94,6 @@ model AppointmentSeries {
   endAt       DateTime @map("end_at") @db.Timestamptz(6)
 
   recurrenceType RecurrenceType @map("recurrence_type")
-  // recurrenceInterval   Int                 @default(1) @map("recurrence_interval")
-  // recurrenceByDay      Weekday[]           @map("recurrence_by_day")
-  // recurrenceDayOfMonth Int?                @map("recurrence_day_of_month") @db.SmallInt
-  // recurrenceCount      Int?                @map("recurrence_count")
 
   // WEEKLY
   weeklyDay   Weekday[] @map("weekly_day")
@@ -127,21 +123,21 @@ model Appointment {
   id       String   @id @default(uuid()) @db.Uuid
   userId   String   @map("user_id") @db.Uuid
   seriesId String   @map("series_id") @db.Uuid
-  startsAt DateTime @map("starts_at") @db.Timestamptz(6)
-  endsAt   DateTime @map("ends_at") @db.Timestamptz(6)
+  startAt  DateTime @map("starts_at") @db.Timestamptz(6)
+  endAt    DateTime @map("ends_at") @db.Timestamptz(6)
 
   isRecurringInstance Boolean           @default(false) @map("is_recurring_instance")
   status              AppointmentStatus
-
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  jobId               String?           @map("job_id")
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   series        AppointmentSeries? @relation(fields: [seriesId], references: [id], onDelete: Cascade)
-  reminders     Reminder[]
+  // reminders     Reminder[]
   notifications Notification[]
 
-  @@index([userId, startsAt])
+  @@index([userId, startAt])
   @@index([seriesId])
   @@map("appointments")
 }
@@ -177,26 +173,26 @@ model SeriesTag {
   @@map("series_tag")
 }
 
-// ================= REMINDER (NEW DESIGN) =================
-model Reminder {
-  id            String @id @default(uuid()) @db.Uuid
-  appointmentId String @map("appointment_id") @db.Uuid
-  userId        String @map("user_id") @db.Uuid
-  jobId         String @unique @map("job_id")
+// // ================= REMINDER (NEW DESIGN) =================
+// model Reminder {
+//   id            String @id @default(uuid()) @db.Uuid
+//   appointmentId String @map("appointment_id") @db.Uuid
+//   userId        String @map("user_id") @db.Uuid
+//   jobId         String @unique @map("job_id")
 
-  occurrenceTime DateTime @map("occurrence_time") @db.Timestamptz(6)
-  nextTriggerAt  DateTime @map("next_trigger_at") @db.Timestamptz(6)
+//   occurrenceTime DateTime @map("occurrence_time") @db.Timestamptz(6)
+//   nextTriggerAt  DateTime @map("next_trigger_at") @db.Timestamptz(6)
 
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+//   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+//   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  appointment   Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  notifications Notification[]
+//   appointment   Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+//   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   notifications Notification[]
 
-  @@index([userId, nextTriggerAt])
-  @@map("reminders")
-}
+//   @@index([userId, nextTriggerAt])
+//   @@map("reminders")
+// }
 
 // ================= NOTIFICATION =================
 model Notification {
@@ -215,7 +211,7 @@ model Notification {
 
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
-  reminder    Reminder?    @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+  // reminder    Reminder?    @relation(fields: [reminderId], references: [id], onDelete: SetNull)
 
   @@index([userId, readAt])
   @@map("notifications")

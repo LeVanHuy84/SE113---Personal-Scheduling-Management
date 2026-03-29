@@ -1,20 +1,17 @@
-import { RecurrenceType } from '@prisma/client';
+import { AppointmentStatus } from '@prisma/client';
 import { TagResponseDto } from 'src/tag/dto/tag-response.dto';
 
 
-export class AppointmentSeriesResponseDto {
+export class AppointmentResponseDto {
   id: string;
   userId: string;
+  seriesId: string;
   title: string;
+  description: string | null;
   startAt: Date;
   endAt: Date;
-  description: string | null;
-  recurrenceType: RecurrenceType;
-  weeklyDay: string[];
-  monthlyDay: number | null;
-  yearlyDay: number | null;
-  yearlyMonth: number | null;
-  seriesTimezone: string;
-  cancelledAt: Date | null;
+  isRecurringInstance: boolean;
+  status: AppointmentStatus;
+  jobId: string | null;
   tags: TagResponseDto[]
 }

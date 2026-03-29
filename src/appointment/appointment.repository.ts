@@ -1,33 +1,30 @@
 import { Injectable } from '@nestjs/common';
-import { AppointmentStatus, Prisma, RecurrenceType, Weekday } from '@prisma/client';
+import { AppointmentStatus, Prisma } from '@prisma/client';
 import { PaginationResponseDto } from 'src/common/dto/pagination.dto';
+import { generateOccurrences } from 'src/common/helper/recurrence.helper';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { TagResponseDto } from 'src/tag/dto/tag-response.dto';
-import { PrismaService } from '../prisma/prisma.service';
-import { AppointmentSeriesResponseDto } from './dto/appointment-response.dto';
-import { AppointmentSeriesQueryDto } from './dto/get-appointments-query.dto';
-import { UpdateAppointmentSeriesRequestDto } from './dto/update-appointment-request.dto';
+import { AppointmentResponseDto } from './dto/appointment-response.dto';
+import { AppointmentQueryDto } from './dto/get-appointments-query.dto';
 
 
 @Injectable()
 export class AppointmentRepository {
   constructor(private readonly prisma: PrismaService) { }
 
-  toDto(entity) {
+  toDto(entity): AppointmentResponseDto {
     return {
       id: entity.id,
       userId: entity.userId,
-      title: entity.title,
-      startAt: entity.startAt,
-      endAt: entity.endAt,
-      description: entity.description,
-      recurrenceType: entity.recurrenceType,
-      weeklyDay: entity.weeklyDay.map(d => d.toString()), // convert enum/string nếu cần
-      monthlyDay: entity.monthlyDay,
-      yearlyDay: entity.yearlyDay,
-      yearlyMonth: entity.yearlyMonth,
-      seriesTimezone: entity.seriesTimezone,
-      cancelledAt: entity.cancelledAt,
-      tags: (entity.tags ?? []).map(t => ({
+      seriesId: entity.series?.id,
+      title: entity.series?.title,
+      description: entity.series?.description ?? null,
+      startAt: entity.startsAt,
+      endAt: entity.endsAt,
+      isRecurringInstance: entity.isRecurringInstance,
+      jobId: entity.jobId,
+      status: entity.status,
+      tags: (entity.series?.tags ?? []).map(t => ({
         id: t.tag.id,
         name: t.tag.name,
         color: t.tag.color,
@@ -35,123 +32,105 @@ export class AppointmentRepository {
     }
   }
 
-  async hasOverlappingScheduledAppointment(
-    userId: string,
-    startsAt: Date,
-    endsAt: Date,
-  ): Promise<boolean> {
-    const existing = await this.prisma.appointment.findFirst({
-      where: {
-        userId,
-        status: AppointmentStatus.SCHEDULED,
-        // (startA < endB) AND (endA > startB)
-        // => existing.startsAt < endsAt AND existing.endsAt > startsAt
-        startsAt: { lt: endsAt },
-        endsAt: { gt: startsAt },
-      },
-      select: { id: true },
-    });
-
-    return !!existing;
-  }
-
-  async hasOverlappingScheduledAppointmentExcludingId(input: {
+  async expandSeries(pattern: {
+    id: string;
     userId: string;
-    startsAt: Date;
-    endsAt: Date;
-    excludeId: string;
-  }): Promise<boolean> {
-    const existing = await this.prisma.appointment.findFirst({
-      where: {
-        userId: input.userId,
-        status: AppointmentStatus.SCHEDULED,
-        id: { not: input.excludeId },
-        startsAt: { lt: input.endsAt },
-        endsAt: { gt: input.startsAt },
-      },
-      select: { id: true },
-    });
-
-    return !!existing;
-  }
-
-  // hàm create
-  async createSeries(input: {
-    userId: string;
-    title: string;
-    description?: string | null;
-    recurrenceType: RecurrenceType;
-    weeklyDay: Weekday[];
+    startAt: Date;
+    endAt: Date;
+    recurrenceType: any;
+    weeklyDay?: any[];
     monthlyDay?: number | null;
     yearlyDay?: number | null;
     yearlyMonth?: number | null;
-    seriesTimezone: string;
-    startAt: Date;
-    endAt: Date;
-    tagIds: string[];
-  }): Promise<AppointmentSeriesResponseDto> {
-    const result = await this.prisma.appointmentSeries.create({
-      data: {
-        userId: input.userId,
-        title: input.title,
-        description: input.description,
-        startAt: input.startAt,
-        endAt: input.endAt,
-        recurrenceType: input.recurrenceType,
-        weeklyDay: input.weeklyDay,
-        monthlyDay: input.monthlyDay,
-        yearlyDay: input.yearlyDay,
-        yearlyMonth: input.yearlyMonth,
-        seriesTimezone: input.seriesTimezone,
-        tags: {
-          create: input.tagIds.map(tagId => ({
-            tag: {
-              connect: { id: tagId }
-            }
-          })), // nối tagIds đã tồn tại
-        }
+    offsetMinutes?: number | null;
+  }, from: Date, to: Date): Promise<{ id: string, occurrence: Date }[]> {
+
+    // 🔹 1. Tạo occurrences từ helper
+    const occurrences = generateOccurrences(pattern, from, to);
+    if (!occurrences.length) return [];
+
+    // 🔹 2. Lấy tất cả appointment đã tồn tại trong khoảng
+    const existingAppointments = await this.prisma.appointment.findMany({
+      where: {
+        seriesId: pattern.id,
+        isRecurringInstance: true,
+        startAt: {
+          gte: new Date(Math.min(...occurrences.map(o => o.start.getTime()))),
+          lte: new Date(Math.max(...occurrences.map(o => o.start.getTime()))),
+        },
       },
-      select: {
-        id: true,
-        userId: true,
-        title: true,
-        description: true,
-        startAt: true,
-        endAt: true,
-        recurrenceType: true,
-        weeklyDay: true,
-        monthlyDay: true,
-        yearlyDay: true,
-        yearlyMonth: true,
-        seriesTimezone: true,
-        cancelledAt: true,
-        tags: {
-          select: {
-            tag: {
-              select: {
-                id: true,
-                name: true,
-                color: true,
-              }
-            },
-          }
-        }
-      },
+      select: { startAt: true },
     });
 
-    return this.toDto(result)
+    const existingSet = new Set(existingAppointments.map(a => a.startAt.getTime()));
+
+    // 🔹 3. Lọc các occurrences chưa tồn tại
+    const newAppointments = occurrences
+      .filter(occ => !existingSet.has(occ.start.getTime()))
+      .map(occ => ({
+        userId: pattern.userId,
+        seriesId: pattern.id,
+        startAt: occ.start,
+        endAt: occ.end,
+        status: AppointmentStatus.SCHEDULED,
+        isRecurringInstance: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
+
+    if (!newAppointments.length) return [];
+
+    // 🔹 4. Bulk insert
+    return (await this.prisma.appointment.createManyAndReturn({
+      data: newAppointments,
+      skipDuplicates: true,
+    })).map(a => ({
+      id: a.id,
+      occurrence: new Date(a.startAt.getTime() - (pattern.offsetMinutes ?? 0) * 60000),
+    }));
+
   }
 
+  async markMissedAppointments(id: string) {
+    const exsiting = await this.prisma.appointment.findFirst({
+      where: {
+        id: id,
+      }
+    })
+    if (exsiting?.status === 'SCHEDULED') {
+      await this.prisma.appointment.update({
+        where: {
+          id: id
+        },
+        data: { status: 'MISSED' },
+      });
+    }
+  }
+
+  async findById(id: string) {
+    return this.prisma.appointment.findFirstOrThrow({
+      where: {
+        id: id
+      }
+    })
+  }
+
+  async update(arg: Prisma.AppointmentUpdateArgs) {
+    const update = await this.prisma.appointment.update(arg);
+    return this.toDto(update);
+  }
+
+
   // hàm find theo query
-  async findAppointmentsSeries(query: AppointmentSeriesQueryDto): Promise<PaginationResponseDto<AppointmentSeriesResponseDto[]>> {
+  async findAppointments(query: AppointmentQueryDto): Promise<PaginationResponseDto<AppointmentResponseDto[]>> {
     const { page = 1, limit = 10, userId } = query;
     const skip = (page - 1) * limit;
 
-    const where: Prisma.AppointmentSeriesWhereInput = {
+    const where: Prisma.AppointmentWhereInput = {
       userId: userId,
     };
 
-    const [items, total] = await Promise.all([this.prisma.appointmentSeries.findMany({
+    const [items, total] = await Promise.all([this.prisma.appointment.findMany({
       where,
       orderBy: {
         createdAt: 'asc',
@@ -161,122 +140,35 @@ export class AppointmentRepository {
       select: {
         id: true,
         userId: true,
-        title: true,
-        description: true,
         startAt: true,
         endAt: true,
-        recurrenceType: true,
-        weeklyDay: true,
-        monthlyDay: true,
-        yearlyDay: true,
-        yearlyMonth: true,
-        seriesTimezone: true,
-        cancelledAt: true,
-        tags: {
-          select: {
-            tag: {
-              select: {
-                id: true,
-                name: true,
-                color: true,
+        status: true,
+        isRecurringInstance: true,
+        series: {
+          include: {
+            tags: {
+              include: {
+                tag: {
+                  select: {
+                    id: true,
+                    name: true,
+                    color: true,
+                  }
+                }
               }
-            },
+            }
           }
         }
       },
     }),
-    this.prisma.appointmentSeries.count({ where })]);
+    this.prisma.appointment.count({ where })]);
 
     return {
       items: items.map(item => this.toDto(item)), total, page, limit
     };
   }
 
-  // tìm theo id
-  async findAppointmentSeriesByIdForUser(input: {
-    userId: string;
-    seriesId: string;
-  }): Promise<AppointmentSeriesResponseDto | null> {
-    const result = await this.prisma.appointmentSeries.findFirst({
-      where: {
-        id: input.seriesId,
-        userId: input.userId,
-      },
-      select: {
-        id: true,
-        userId: true,
-        title: true,
-        description: true,
-        startAt: true,
-        endAt: true,
-        recurrenceType: true,
-        weeklyDay: true,
-        monthlyDay: true,
-        yearlyDay: true,
-        yearlyMonth: true,
-        seriesTimezone: true,
-        cancelledAt: true,
-        tags: {
-          select: {
-            tag: {
-              select: {
-                id: true,
-                name: true,
-                color: true,
-              }
-            },
-          }
-        }
-      },
-    });
-
-    return result ? this.toDto(result) : null;
-  }
-
-  async updateSeriesByIdForUser(input: {
-    userId: string;
-    seriesId: string;
-    data: UpdateAppointmentSeriesRequestDto
-  }): Promise<AppointmentSeriesResponseDto | null> {
-
-    const { tagIds = [], ...updateData } = input.data;
-    const updated = await this.prisma.appointmentSeries.update({
-      where: {
-        id: input.seriesId,
-        userId: input.userId,
-      },
-      data: {
-        ...updateData,
-        tags: tagIds
-          ? {
-            deleteMany: {}, // xóa tất cả tag cũ nếu có tagIds mới
-            create: tagIds.map(tagId => ({
-              tag: { connect: { id: tagId } }
-            }))
-          }
-          : undefined // nếu tagIds không gửi, giữ nguyên
-      },
-
-    });
-
-    return this.findAppointmentSeriesByIdForUser({
-      userId: updated.userId,
-      seriesId: updated.id,
-    });
-  }
-
-  async deleteSeriesByIdForUser(input: {
-    userId: string;
-    seriesId: string;
-  }) {
-    return this.prisma.appointmentSeries.delete({
-      where: {
-        id: input.seriesId,
-        userId: input.userId,
-      },
-    });
-  }
-
+  // for cronjob
   async findFutureAppointmentsBySeries(input: {
     userId: string;
     seriesId: string;
@@ -286,41 +178,27 @@ export class AppointmentRepository {
       where: {
         userId: input.userId,
         seriesId: input.seriesId,
-        startsAt: { gte: input.from },
+        isRecurringInstance: true,
+        startAt: { gte: input.from },
       },
       select: { id: true },
     });
   }
 
-  async deleteRemindersByAppointmentIds(
-    appointmentIds: string[],
-  ): Promise<number> {
-    if (appointmentIds.length === 0) {
-      return 0;
-    }
-    const deleted = await this.prisma.reminder.deleteMany({
-      where: {
-        appointmentId: { in: appointmentIds },
-      },
-    });
-    return deleted.count;
-  }
+  async updateAppointmentsWithJob(
+    updates: { appointmentId: string, jobId: string }[]
+  ) {
+    if (!updates.length) return;
 
-  async findReminderIdsByAppointmentIds(
-    appointmentIds: string[],
-  ): Promise<string[]> {
-    if (appointmentIds.length === 0) {
-      return [];
-    }
-
-    const reminders = await this.prisma.reminder.findMany({
-      where: {
-        appointmentId: { in: appointmentIds },
-      },
-      select: { id: true },
-    });
-
-    return reminders.map((r) => r.id);
+    // Dùng Promise.all để chạy song song
+    await Promise.all(
+      updates.map(({ appointmentId, jobId }) =>
+        this.prisma.appointment.update({
+          where: { id: appointmentId },
+          data: { jobId: jobId },
+        })
+      )
+    );
   }
 
   async deleteFutureAppointmentsBySeries(input: {
@@ -332,10 +210,11 @@ export class AppointmentRepository {
       where: {
         userId: input.userId,
         seriesId: input.seriesId,
-        startsAt: { gte: input.from },
+        startAt: { gte: input.from },
       },
     });
     return deleted.count;
   }
+
 }
 

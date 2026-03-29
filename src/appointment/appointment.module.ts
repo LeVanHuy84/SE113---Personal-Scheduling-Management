@@ -1,14 +1,15 @@
 import { Module } from '@nestjs/common';
+import { ReminderProcessor } from 'src/queue/reminder.processor';
+import { TagModule } from 'src/tag/tag.module';
 import { PrismaModule } from '../prisma/prisma.module';
-import { ReminderModule } from '../reminder/reminder.module';
 import { AppointmentController } from './appointment.controller';
 import { AppointmentRepository } from './appointment.repository';
 import { AppointmentService } from './appointment.service';
-import { TagModule } from 'src/tag/tag.module';
 
 @Module({
-  imports: [PrismaModule, ReminderModule, TagModule],
+  imports: [PrismaModule, TagModule],
   controllers: [AppointmentController],
-  providers: [AppointmentRepository, AppointmentService],
+  providers: [AppointmentRepository, AppointmentService, ReminderProcessor],
+  exports: [AppointmentRepository, AppointmentService]
 })
-export class AppointmentModule {}
+export class AppointmentModule { }

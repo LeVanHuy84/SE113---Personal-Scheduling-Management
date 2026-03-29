@@ -8,12 +8,12 @@ import { QueueModule } from './queue/queue.module';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
 import { AppointmentModule } from './appointment/appointment.module';
-import { ReminderModule } from './reminder/reminder.module';
 import { RecurringModule } from './recurring/recurring.module';
 import { NotificationModule } from './notification/notification.module';
 import { StatisticsModule } from './statistics/statistics.module';
 import { UserModule } from './user/user.module';
 import { TagModule } from './tag/tag.module';
+import { AppointmentSeriesModule } from './appointment-series/series.module';
 
 @Module({
   imports: [
@@ -27,8 +27,7 @@ import { TagModule } from './tag/tag.module';
     PrismaModule,
     QueueModule,
     AuthModule,
-    AppointmentModule,
-    ReminderModule,
+    AppointmentSeriesModule,
     RecurringModule,
     NotificationModule,
     StatisticsModule,

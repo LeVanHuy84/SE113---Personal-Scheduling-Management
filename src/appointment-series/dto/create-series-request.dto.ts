@@ -44,8 +44,9 @@ export class CreateAppointmentSeriesRequestDto {
     return value;
   })
   @IsDate()
+  @IsNotEmpty()
   @IsAppointmentTimeRange()
-  startAt!: Date;
+  startAt: Date;
 
   @Transform(({ value }) => {
     if (value instanceof Date) {
@@ -57,7 +58,8 @@ export class CreateAppointmentSeriesRequestDto {
     return value;
   })
   @IsDate()
-  endAt!: Date;
+  @IsNotEmpty()
+  endAt: Date;
 
   @IsOptional()
   @IsNumber()

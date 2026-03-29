@@ -1,7 +1,7 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { CreateAppointmentSeriesRequestDto } from './create-appointment-request.dto';
 import { Transform } from 'class-transformer';
 import { IsDate, IsEmpty, IsOptional } from 'class-validator';
+import { CreateAppointmentSeriesRequestDto } from './create-series-request.dto';
 
 const UPDATE_SCOPES = ['single', 'series'] as const;
 export type UpdateAppointmentScope = (typeof UPDATE_SCOPES)[number];
