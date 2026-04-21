@@ -1,5 +1,5 @@
 export class TagResponseDto {
-    id: string;
-    name: string;
-    color: string;
+  id: string;
+  name: string;
+  color: string | null;
 }

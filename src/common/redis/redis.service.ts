@@ -12,11 +12,15 @@ export class RedisService implements OnModuleDestroy {
     this.client = redisUrl
       ? new Redis(redisUrl)
       : new Redis({
-          host: this.configService.getOrThrow<string>('REDIS_HOST'),
-          port: Number(this.configService.getOrThrow<string>('REDIS_PORT')),
-          password:
-            this.configService.get<string>('REDIS_PASSWORD') || undefined,
-        });
+        username: this.configService.getOrThrow<string>("REDIS_USERNAME"),
+        host: this.configService.getOrThrow<string>('REDIS_HOST'),
+        port: Number(this.configService.getOrThrow<string>('REDIS_PORT')),
+        tls: {
+          
+        },
+        password:
+          this.configService.get<string>('REDIS_PASSWORD') || undefined,
+      });
   }
 
   async get<T = string>(key: string): Promise<T | null> {
