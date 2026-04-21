@@ -98,5 +98,34 @@ export function validateEnvironment(
     validated.FRONTEND_BASE_URL = appBaseUrl;
   }
 
+  const firebaseEnabledRaw = config.FIREBASE_ENABLED;
+  const firebaseEnabled =
+    typeof firebaseEnabledRaw === 'string' &&
+    firebaseEnabledRaw.toLowerCase() === 'true';
+  if (typeof firebaseEnabledRaw === 'string') {
+    validated.FIREBASE_ENABLED = firebaseEnabledRaw;
+  }
+
+  if (firebaseEnabled) {
+    validated.FIREBASE_PROJECT_ID = requireEnv(config, 'FIREBASE_PROJECT_ID');
+    validated.FIREBASE_CLIENT_EMAIL = requireEnv(config, 'FIREBASE_CLIENT_EMAIL');
+    validated.FIREBASE_PRIVATE_KEY = requireEnv(config, 'FIREBASE_PRIVATE_KEY');
+  } else {
+    const firebaseProjectId = config.FIREBASE_PROJECT_ID;
+    if (typeof firebaseProjectId === 'string') {
+      validated.FIREBASE_PROJECT_ID = firebaseProjectId;
+    }
+
+    const firebaseClientEmail = config.FIREBASE_CLIENT_EMAIL;
+    if (typeof firebaseClientEmail === 'string') {
+      validated.FIREBASE_CLIENT_EMAIL = firebaseClientEmail;
+    }
+
+    const firebasePrivateKey = config.FIREBASE_PRIVATE_KEY;
+    if (typeof firebasePrivateKey === 'string') {
+      validated.FIREBASE_PRIVATE_KEY = firebasePrivateKey;
+    }
+  }
+
   return validated;
 }

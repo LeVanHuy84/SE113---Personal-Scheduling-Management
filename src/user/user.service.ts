@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { UserProfileResponseDto } from './dto/user-profile-response.dto';
 import { UpdateProfileRequestDto } from './dto/update-profile-request.dto';
 import { UserRepository } from './user.repository';
+import { UserDeviceRequestDto } from './dto/user-device-request.dto';
 
 type PrismaLikeError = {
   code?: string;
@@ -9,7 +10,7 @@ type PrismaLikeError = {
 
 @Injectable()
 export class UserService {
-  constructor(private readonly userRepository: UserRepository) {}
+  constructor(private readonly userRepository: UserRepository) { }
 
   private isPrismaLikeError(error: unknown): error is PrismaLikeError {
     return typeof error === 'object' && error !== null;
@@ -47,5 +48,17 @@ export class UserService {
 
       throw error;
     }
+  }
+
+  async registerDevice(userId, data: UserDeviceRequestDto) {
+    return this.userRepository.registerDevice(userId, data);
+  }
+
+  async getUserDevices(userId) {
+    return this.userRepository.getUserDevices(userId);
+  }
+
+  async removeDevice(fcmToken: string) {
+    return this.userRepository.removeDevice(fcmToken);
   }
 }

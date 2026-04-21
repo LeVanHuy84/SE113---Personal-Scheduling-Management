@@ -79,8 +79,23 @@ model User {
   notifications          Notification[]
   authAttempts           AuthAttempt[]
   monthlyStats           UserMonthlyStat[]
+  userDevices            UserDevice[]
 
   @@map("users")
+}
+
+model UserDevice {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id") @db.Uuid
+  fcmToken     String   @unique @map("fcm_token")
+  deviceName   String?  @map("device_name")
+  platform     String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  lastActiveAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_devices")
 }
 
 // ================= SERIES =================

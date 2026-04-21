@@ -6,6 +6,7 @@ import { validateEnvironment } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
 import { QueueModule } from './queue/queue.module';
 import { CommonModule } from './common/common.module';
+import { FirebaseModule } from './firebase/firebase.module';
 import { AuthModule } from './auth/auth.module';
 import { AppointmentModule } from './appointment/appointment.module';
 import { RecurringModule } from './recurring/recurring.module';
@@ -25,6 +26,8 @@ import { AppointmentSeriesModule } from './appointment-series/series.module';
     }),
     CommonModule,
     PrismaModule,
+    FirebaseModule,
+    NotificationModule,
     QueueModule,
     AuthModule,
     AppointmentSeriesModule,

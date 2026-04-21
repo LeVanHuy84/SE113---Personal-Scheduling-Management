@@ -8,10 +8,12 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { AppointmentSeriesController } from './series.controller';
 import { AppointmentSeriesRepository } from './series.repository';
 import { AppointmentSeriesService } from './series.service';
+import { EmailModule } from 'src/email/email.module';
+import { NotificationModule } from 'src/notification/notification.module';
 
 
 @Module({
-  imports: [PrismaModule, TagModule, QueueModule, AppointmentModule],
+  imports: [PrismaModule, TagModule, QueueModule, AppointmentModule, EmailModule, NotificationModule],
   controllers: [AppointmentSeriesController],
   providers: [AppointmentSeriesRepository, AppointmentSeriesService, ReminderProcessor, AppointmentProcessor],
   exports: [AppointmentSeriesRepository, AppointmentSeriesService]

@@ -14,6 +14,13 @@ type SendPasswordResetEmailInput = {
   displayName: string | null;
 };
 
+type SendReminderEmailInput = {
+  to: string;
+  displayName: string | null;
+  appointmentTitle: string;
+  startAt: Date;
+};
+
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
@@ -314,6 +321,56 @@ export class EmailService {
             </tr>
         </table>
         </div>
+      `,
+    });
+  }
+
+  async sendReminderEmail(input: SendReminderEmailInput): Promise<void> {
+    const host = this.configService.get<string>('EMAIL_HOST');
+    const portRaw = this.configService.get<string>('EMAIL_PORT');
+    const user = this.configService.get<string>('EMAIL_USER');
+    const pass = this.configService.get<string>('EMAIL_PASS');
+    const from = this.configService.get<string>('EMAIL_FROM');
+
+    if (!host || !portRaw || !user || !pass || !from) {
+      this.logger.warn(
+        'Email SMTP configuration is incomplete; skipping reminder email',
+      );
+      return;
+    }
+
+    const port = Number(portRaw);
+    if (Number.isNaN(port)) {
+      this.logger.warn('EMAIL_PORT is invalid; skipping reminder email');
+      return;
+    }
+
+    const recipientName = input.displayName?.trim() || 'there';
+    const appointmentTime = input.startAt.toLocaleString('en-US', {
+      timeZone: 'UTC',
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: {
+        user,
+        pass,
+      },
+    });
+
+    await transporter.sendMail({
+      from,
+      to: input.to,
+      subject: `Reminder: ${input.appointmentTitle}`,
+      html: `
+        <p>Hello ${recipientName},</p>
+        <p>This is a reminder for your appointment:</p>
+        <p><strong>${input.appointmentTitle}</strong></p>
+        <p>Start time: ${appointmentTime} (UTC)</p>
       `,
     });
   }

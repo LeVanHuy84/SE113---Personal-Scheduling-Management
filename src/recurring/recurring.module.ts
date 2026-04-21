@@ -7,9 +7,11 @@ import { QueueModule } from 'src/queue/queue.module';
 import { ReminderProcessor } from 'src/queue/reminder.processor';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RecurringCron } from './recurring.cron';
+import { EmailModule } from 'src/email/email.module';
+import { NotificationModule } from 'src/notification/notification.module';
 
 @Module({
-  imports: [ScheduleModule.forRoot(), PrismaModule, QueueModule, AppointmentModule],
+  imports: [ScheduleModule.forRoot(), PrismaModule, QueueModule, AppointmentModule, EmailModule, NotificationModule],
   providers: [RecurringCron, ReminderProcessor, MissedAppointmentProcessor, AppointmentController],
 })
 export class RecurringModule { }

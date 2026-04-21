@@ -44,6 +44,19 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
+## Firebase push notification setup
+
+1. Create a Firebase project and generate a service account key.
+2. Copy `.env.example` to `.env`.
+3. Set these values in `.env`:
+   - `FIREBASE_ENABLED=true`
+   - `FIREBASE_PROJECT_ID=<firebase-project-id>`
+   - `FIREBASE_CLIENT_EMAIL=<service-account-client-email>`
+   - `FIREBASE_PRIVATE_KEY=<service-account-private-key-with-\n>`
+4. Client apps should subscribe to topic `user-<userId>` to receive reminder pushes.
+
+If you do not want push notifications in local/dev, set `FIREBASE_ENABLED=false`.
+
 ## Run tests
 
 ```bash
