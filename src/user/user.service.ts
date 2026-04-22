@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { UserProfileResponseDto } from './dto/user-profile-response.dto';
+import { UserDeviceRequestDto } from '../device/dto/user-device-request.dto';
 import { UpdateProfileRequestDto } from './dto/update-profile-request.dto';
+import { UserProfileResponseDto } from './dto/user-profile-response.dto';
 import { UserRepository } from './user.repository';
-import { UserDeviceRequestDto } from './dto/user-device-request.dto';
 
 type PrismaLikeError = {
   code?: string;
@@ -50,15 +50,4 @@ export class UserService {
     }
   }
 
-  async registerDevice(userId, data: UserDeviceRequestDto) {
-    return this.userRepository.registerDevice(userId, data);
-  }
-
-  async getUserDevices(userId) {
-    return this.userRepository.getUserDevices(userId);
-  }
-
-  async removeDevice(fcmToken: string) {
-    return this.userRepository.removeDevice(fcmToken);
-  }
 }
