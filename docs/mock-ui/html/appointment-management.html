@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PSMS – Appointment Management</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f0f2f5; }
+    header { background: #333; color: #fff; display: flex; align-items: center; padding: 0 16px; height: 48px; gap: 12px; }
+    header .logo { font-weight: bold; font-size: 16px; margin-right: 16px; }
+    header input[type="text"] { flex: 1; max-width: 320px; padding: 6px 10px; border: none; font-size: 13px; }
+    header .notif-btn { background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; }
+    header .user-info { margin-left: auto; font-size: 13px; cursor: pointer; }
+    .layout { display: flex; min-height: calc(100vh - 48px); }
+    aside { width: 200px; background: #fff; border-right: 1px solid #ddd; padding: 16px; flex-shrink: 0; }
+    aside a { display: block; padding: 7px 8px; font-size: 14px; color: #333; text-decoration: none; border-radius: 4px; }
+    aside a:hover, aside a.active { background: #eee; font-weight: bold; }
+    main { flex: 1; padding: 20px; }
+    h2 { font-size: 20px; margin-bottom: 16px; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    .btn-primary { padding: 8px 16px; background: #333; color: #fff; border: none; cursor: pointer; font-size: 13px; }
+    .btn-secondary { padding: 8px 16px; background: #fff; color: #333; border: 1px solid #ccc; cursor: pointer; font-size: 13px; }
+    .search-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+    .search-bar input { flex: 1; max-width: 300px; padding: 7px 10px; border: 1px solid #ccc; font-size: 13px; }
+    .search-bar select { padding: 7px; border: 1px solid #ccc; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; font-size: 13px; }
+    th { background: #f5f5f5; padding: 10px 12px; text-align: left; border-bottom: 2px solid #ddd; font-size: 12px; text-transform: uppercase; }
+    td { padding: 10px 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
+    tr:hover td { background: #fafafa; }
+    .tag-chip { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; color: #fff; margin-right: 4px; }
+    .chip-work { background: #4a90d9; } .chip-personal { background: #e67e22; } .chip-study { background: #27ae60; } .chip-health { background: #e74c3c; }
+    .badge-pending { background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+    .badge-done { background: #d4edda; color: #155724; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+    .action-btn { background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px 5px; }
+    .action-btn:hover { background: #eee; }
+    .pagination { margin-top: 12px; display: flex; gap: 4px; }
+    .pagination button { padding: 5px 10px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+    .pagination button.active { background: #333; color: #fff; border-color: #333; }
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); align-items: center; justify-content: center; z-index: 100; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; padding: 28px; width: 520px; max-width: 96%; max-height: 90vh; overflow-y: auto; }
+    .modal h3 { font-size: 17px; margin-bottom: 20px; display: flex; justify-content: space-between; }
+    .modal h3 button { background: none; border: none; font-size: 18px; cursor: pointer; }
+    .form-row { margin-bottom: 14px; }
+    .form-row label { display: block; font-size: 12px; margin-bottom: 4px; font-weight: bold; }
+    .form-row input, .form-row textarea, .form-row select { width: 100%; padding: 8px; border: 1px solid #ccc; font-size: 13px; }
+    .form-row textarea { resize: vertical; min-height: 60px; }
+    .half-row { display: flex; gap: 12px; }
+    .half-row .form-row { flex: 1; }
+    .recurrence-box { border: 1px solid #ddd; padding: 12px; margin-top: 8px; background: #fafafa; }
+    .conflict-warn { background: #fff3cd; border: 1px solid #f0ad4e; padding: 8px; font-size: 12px; color: #856404; margin-bottom: 12px; }
+    .modal-footer { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+    .confirm-modal { background: #fff; padding: 28px; width: 400px; max-width: 95%; }
+    .confirm-modal h3 { font-size: 16px; margin-bottom: 12px; }
+    .confirm-modal p { font-size: 13px; color: #555; margin-bottom: 16px; }
+    .confirm-modal .radio-group { margin-bottom: 16px; }
+    .confirm-modal .radio-group label { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 8px; }
+    .danger-text { color: #c00; font-size: 12px; }
+    .tip-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">PSMS</span>
+  <button class="notif-btn" onclick="window.location.href='notification-log.html'">🔔</button>
+  <input type="text" placeholder="Search appointments...">
+  <span class="user-info">▸ John Doe</span>
+</header>
+
+<div class="layout">
+  <aside>
+    <a href="calendar-dashboard.html">📅 Calendar</a>
+    <a href="appointment-management.html" class="active">📋 Appointments</a>
+    <a href="tag-management.html">🏷 Tags</a>
+    <a href="reminder-settings.html">🔔 Reminders</a>
+    <a href="notification-log.html">📩 Notifications</a>
+    <a href="statistics-dashboard.html">📊 Statistics</a>
+    <a href="export-data.html">📤 Export</a>
+    <a href="profile-page.html">👤 Profile</a>
+  </aside>
+
+  <main>
+    <h2>Appointments</h2>
+
+    <div class="toolbar">
+      <button class="btn-primary" onclick="openCreateModal()">+ New Appointment</button>
+      <button class="btn-secondary" onclick="window.location.href='export-data.html'">📤 Export</button>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="Search by title or description..." oninput="filterTable()">
+      <select id="filter-tag" onchange="filterTable()">
+        <option value="">All Tags</option>
+        <option>Work</option><option>Personal</option><option>Study</option><option>Health</option>
+      </select>
+      <select id="filter-status" onchange="filterTable()">
+        <option value="">All Status</option>
+        <option>Pending</option><option>Completed</option>
+      </select>
+    </div>
+
+    <table id="appt-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Title</th>
+          <th>Tags</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr data-tag="Work" data-status="Pending">
+          <td>Mar 14</td><td>Team Standup</td>
+          <td><span class="tag-chip chip-work">Work</span></td>
+          <td><span class="badge-pending">Pending</span></td>
+          <td><button class="action-btn" onclick="openEditModal(this)" title="Edit">✏️</button><button class="action-btn" onclick="openDeleteModal(this)" title="Delete">🗑️</button></td>
+        </tr>
+        <tr data-tag="Health" data-status="Pending">
+          <td>Mar 14</td><td>Doctor Appointment</td>
+          <td><span class="tag-chip chip-health">Health</span></td>
+          <td><span class="badge-pending">Pending</span></td>
+          <td><button class="action-btn" onclick="openEditModal(this)" title="Edit">✏️</button><button class="action-btn" onclick="openDeleteModal(this)" title="Delete">🗑️</button></td>
+        </tr>
+        <tr data-tag="Study" data-status="Completed">
+          <td>Mar 15</td><td>Study Session — Math</td>
+          <td><span class="tag-chip chip-study">Study</span></td>
+          <td><span class="badge-done">Completed</span></td>
+          <td><button class="action-btn" onclick="openEditModal(this)" title="Edit">✏️</button><button class="action-btn" onclick="openDeleteModal(this)" title="Delete">🗑️</button></td>
+        </tr>
+        <tr data-tag="Work" data-status="Pending">
+          <td>Mar 16</td><td>Sprint Review</td>
+          <td><span class="tag-chip chip-work">Work</span></td>
+          <td><span class="badge-pending">Pending</span></td>
+          <td><button class="action-btn" onclick="openEditModal(this)" title="Edit">✏️</button><button class="action-btn" onclick="openDeleteModal(this)" title="Delete">🗑️</button></td>
+        </tr>
+        <tr data-tag="Health" data-status="Completed">
+          <td>Mar 17</td><td>Gym Session</td>
+          <td><span class="tag-chip chip-health">Health</span></td>
+          <td><span class="badge-done">Completed</span></td>
+          <td><button class="action-btn" onclick="openEditModal(this)" title="Edit">✏️</button><button class="action-btn" onclick="openDeleteModal(this)" title="Delete">🗑️</button></td>
+        </tr>
+        <tr data-tag="Personal" data-status="Pending">
+          <td>Mar 18</td><td>Dinner with Family</td>
+          <td><span class="tag-chip chip-personal">Personal</span></td>
+          <td><span class="badge-pending">Pending</span></td>
+          <td><button class="action-btn" onclick="openEditModal(this)" title="Edit">✏️</button><button class="action-btn" onclick="openDeleteModal(this)" title="Delete">🗑️</button></td>
+        </tr>
+        <tr data-tag="Work" data-status="Completed">
+          <td>Mar 20</td><td>Presentation to Client</td>
+          <td><span class="tag-chip chip-work">Work</span></td>
+          <td><span class="badge-done">Completed</span></td>
+          <td><button class="action-btn" onclick="openEditModal(this)" title="Edit">✏️</button><button class="action-btn" onclick="openDeleteModal(this)" title="Delete">🗑️</button></td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size:12px;color:#888;margin-top:8px;">Showing <span id="row-count">7</span> appointments</p>
+    <div class="pagination">
+      <button class="active">1</button><button>2</button><button>3</button><button>▶</button>
+    </div>
+  </main>
+</div>
+
+<!-- Create/Edit Modal -->
+<div class="modal-overlay" id="appt-modal">
+  <div class="modal">
+    <h3><span id="modal-title">Create New Appointment</span><button onclick="closeModal('appt-modal')">×</button></h3>
+    <div class="conflict-warn" id="conflict-warn" style="display:none">⚠ Time conflict detected with "Doctor Appointment" (Mar 14, 11:00–12:00)</div>
+    <div class="form-row"><label>Title *</label><input type="text" id="f-title" placeholder="Appointment title"></div>
+    <div class="form-row"><label>Description</label><textarea id="f-desc" placeholder="Optional description"></textarea></div>
+    <div class="half-row">
+      <div class="form-row"><label>Start Date & Time *</label><input type="datetime-local" id="f-start" value="2026-03-14T09:00" onchange="checkConflict()"></div>
+      <div class="form-row"><label>End Date & Time *</label><input type="datetime-local" id="f-end" value="2026-03-14T10:00" onchange="checkConflict()"></div>
+    </div>
+    <div class="form-row">
+      <label>Tags</label>
+      <label style="font-size:13px;margin-right:12px;"><input type="checkbox"> Work</label>
+      <label style="font-size:13px;margin-right:12px;"><input type="checkbox"> Personal</label>
+      <label style="font-size:13px;margin-right:12px;"><input type="checkbox"> Study</label>
+      <label style="font-size:13px;"><input type="checkbox"> Health</label>
+    </div>
+    <div class="form-row">
+      <label>Status</label>
+      <label style="font-size:13px;margin-right:16px;"><input type="radio" name="status" value="Pending" checked> Pending</label>
+      <label style="font-size:13px;"><input type="radio" name="status" value="Completed"> Completed</label>
+    </div>
+    <div class="form-row">
+      <label><input type="checkbox" id="recurrence-toggle" onchange="toggleRecurrence()"> Enable Recurrence</label>
+      <div class="recurrence-box" id="recurrence-box" style="display:none">
+        <div class="half-row">
+          <div class="form-row"><label>Pattern</label>
+            <select><option>Daily</option><option>Weekly</option><option>Monthly</option></select>
+          </div>
+          <div class="form-row"><label>Ends After</label>
+            <select><option>5 occurrences</option><option>10 occurrences</option><option>On date</option></select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Reminders</label>
+      <select style="width:auto;padding:6px;border:1px solid #ccc;font-size:13px;margin-right:8px;">
+        <option>10 minutes before</option><option>30 minutes before</option><option>1 hour before</option><option>1 day before</option>
+      </select>
+      <button style="padding:5px 10px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:12px;">+ Add</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('appt-modal')">Cancel</button>
+      <button class="btn-primary" onclick="saveAppointment()">Save Appointment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="confirm-modal">
+    <h3>Confirm Delete</h3>
+    <p>Delete "<strong id="delete-title">Team Standup</strong>"?</p>
+    <p style="margin-bottom:12px;font-size:13px;color:#555;">This is a recurring appointment.</p>
+    <div class="radio-group">
+      <label><input type="radio" name="del-type" checked> Delete this occurrence only</label>
+      <label><input type="radio" name="del-type"> Delete entire series</label>
+    </div>
+    <p class="danger-text">⚠ This action cannot be undone.</p>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('delete-modal')">Cancel</button>
+      <button class="btn-primary" style="background:#c00" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openCreateModal() { document.getElementById('modal-title').textContent = 'Create New Appointment'; document.getElementById('appt-modal').classList.add('open'); }
+  function openEditModal(btn) { document.getElementById('modal-title').textContent = 'Edit Appointment'; document.getElementById('appt-modal').classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  function openDeleteModal(btn) { const title = btn.closest('tr').cells[1].textContent; document.getElementById('delete-title').textContent = title; document.getElementById('delete-modal').classList.add('open'); }
+  function confirmDelete() { alert('Appointment deleted.'); closeModal('delete-modal'); }
+  function saveAppointment() { alert('Appointment saved!'); closeModal('appt-modal'); }
+  function toggleRecurrence() { document.getElementById('recurrence-box').style.display = document.getElementById('recurrence-toggle').checked ? 'block' : 'none'; }
+  function checkConflict() { document.getElementById('conflict-warn').style.display = 'block'; }
+
+  function filterTable() {
+    const keyword = document.getElementById('search-input').value.toLowerCase();
+    const tag = document.getElementById('filter-tag').value;
+    const status = document.getElementById('filter-status').value;
+    let count = 0;
+    document.querySelectorAll('#appt-table tbody tr').forEach(row => {
+      const title = row.cells[1].textContent.toLowerCase();
+      const rowTag = row.dataset.tag;
+      const rowStatus = row.dataset.status;
+      const match = (!keyword || title.includes(keyword)) && (!tag || rowTag === tag) && (!status || rowStatus === status);
+      row.style.display = match ? '' : 'none';
+      if (match) count++;
+    });
+    document.getElementById('row-count').textContent = count;
+  }
+</script>
+</body>
+</html>

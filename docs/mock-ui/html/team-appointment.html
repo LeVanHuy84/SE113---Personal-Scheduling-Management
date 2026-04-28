@@ -1,0 +1,855 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PSMS - Team Appointment</title>
+    <style>
+      :root {
+        --bg: #f4f7fb;
+        --surface: #ffffff;
+        --surface-soft: #f8fafd;
+        --text: #132136;
+        --muted: #60708a;
+        --border: #dfe7f3;
+        --primary: #1d4ed8;
+        --primary-soft: #e8efff;
+        --success: #1f8f4d;
+        --warning: #b7791f;
+        --danger: #c53030;
+        --danger-soft: #fee2e2;
+        --busy-soft: #fef3c7;
+        --free-soft: #dcfce7;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: radial-gradient(circle at top left, #eef3ff 0%, var(--bg) 40%);
+        color: var(--text);
+      }
+
+      .topbar {
+        height: 62px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 18px;
+        background: rgba(255, 255, 255, 0.92);
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+
+      .logo {
+        font-weight: 800;
+        letter-spacing: 0.4px;
+      }
+
+      .workspace-title {
+        font-weight: 700;
+        color: #31415e;
+      }
+
+      .search {
+        margin-left: auto;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 8px 12px;
+        width: 260px;
+      }
+
+      .user {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: 250px 1fr 320px;
+        gap: 14px;
+        padding: 14px;
+        min-height: calc(100vh - 62px);
+      }
+
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+      }
+
+      .left {
+        padding: 14px;
+      }
+
+      .left h2 {
+        font-size: 14px;
+        margin-bottom: 10px;
+      }
+
+      .team-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .team-item {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px;
+        cursor: pointer;
+        transition: border-color 0.16s ease, background 0.16s ease;
+      }
+
+      .team-item.active {
+        background: #eef4ff;
+        border-color: #b6ccff;
+      }
+
+      .team-item:hover {
+        border-color: #bfd0f2;
+      }
+
+      .team-item .name {
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 3px;
+      }
+
+      .team-item .meta {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .left-actions {
+        margin-top: 14px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .btn {
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 10px;
+        font-size: 12px;
+        padding: 8px 10px;
+        cursor: pointer;
+      }
+
+      .btn.primary {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: #fff;
+        font-weight: 600;
+      }
+
+      .center {
+        display: grid;
+        grid-template-rows: auto auto 1fr auto;
+        gap: 10px;
+        padding: 14px;
+      }
+
+      .calendar-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .calendar-toolbar h1 {
+        font-size: 18px;
+      }
+
+      .toolbar-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .hint-banner {
+        border: 1px dashed #bcd0f8;
+        background: #f3f7ff;
+        color: #36508a;
+        border-radius: 10px;
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+
+      .calendar {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+      }
+
+      .calendar-grid {
+        display: grid;
+        grid-template-columns: 70px repeat(5, 1fr);
+      }
+
+      .cell {
+        min-height: 52px;
+        border-right: 1px solid #edf2fa;
+        border-bottom: 1px solid #edf2fa;
+        padding: 6px;
+        position: relative;
+        user-select: none;
+      }
+
+      .cell.header {
+        min-height: 42px;
+        background: #f8fbff;
+        font-size: 12px;
+        font-weight: 700;
+        color: #405472;
+      }
+
+      .cell.time {
+        background: #fbfdff;
+        color: #74839d;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .cell.slot:hover {
+        background: #f6f9ff;
+      }
+
+      .cell.slot.selected {
+        outline: 2px solid #93b4ff;
+        background: #edf3ff;
+      }
+
+      .cell.slot.range {
+        background: #e7efff;
+      }
+
+      .event {
+        border-radius: 8px;
+        padding: 5px 6px;
+        font-size: 11px;
+        line-height: 1.3;
+        color: #0f172a;
+      }
+
+      .event.neutral {
+        background: #e2e8f0;
+      }
+
+      .event.conflict {
+        background: var(--danger-soft);
+        border: 1px solid #fca5a5;
+        color: #7f1d1d;
+      }
+
+      .event.focus {
+        background: #dbeafe;
+        border: 1px solid #93c5fd;
+      }
+
+      .suggestions {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--surface-soft);
+        padding: 9px;
+      }
+
+      .suggestions h3 {
+        font-size: 12px;
+        margin-bottom: 7px;
+        color: #475569;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+
+      .chip {
+        border: 1px solid #c9d8f7;
+        border-radius: 999px;
+        font-size: 11px;
+        background: #fff;
+        color: #1e3a8a;
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+
+      .chip.best {
+        background: #e0eaff;
+        border-color: #abc2ff;
+        font-weight: 700;
+      }
+
+      .right {
+        display: grid;
+        grid-template-rows: auto auto 1fr;
+        gap: 10px;
+        padding: 14px;
+      }
+
+      .right h2 {
+        font-size: 14px;
+      }
+
+      .status-box {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px;
+        background: #fff;
+      }
+
+      .status-title {
+        font-size: 12px;
+        color: #64748b;
+        margin-bottom: 7px;
+      }
+
+      .participant {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 7px 0;
+        border-bottom: 1px solid #f0f4fa;
+      }
+
+      .participant:last-child {
+        border-bottom: none;
+      }
+
+      .p-name {
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .badge {
+        font-size: 10px;
+        font-weight: 700;
+        border-radius: 999px;
+        padding: 4px 8px;
+      }
+
+      .badge.free {
+        background: var(--free-soft);
+        color: #166534;
+      }
+
+      .badge.busy {
+        background: var(--busy-soft);
+        color: #92400e;
+      }
+
+      .badge.conflict {
+        background: var(--danger-soft);
+        color: #991b1b;
+      }
+
+      .availability {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px;
+        background: #fff;
+      }
+
+      .availability p {
+        font-size: 12px;
+        color: #475569;
+        margin-bottom: 6px;
+      }
+
+      .mini-track {
+        display: grid;
+        gap: 4px;
+      }
+
+      .track-row {
+        display: grid;
+        grid-template-columns: 58px 1fr;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .track {
+        height: 12px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #22c55e 0 45%, #f59e0b 45% 70%, #ef4444 70% 100%);
+      }
+
+      .summary {
+        font-size: 12px;
+        color: #334155;
+      }
+
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.5);
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+      }
+
+      .modal-overlay.open {
+        display: flex;
+      }
+
+      .modal {
+        width: 620px;
+        max-width: 96%;
+        background: #fff;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        box-shadow: 0 20px 38px rgba(2, 6, 23, 0.25);
+        padding: 16px;
+      }
+
+      .modal-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .modal-head h3 {
+        font-size: 16px;
+      }
+
+      .close {
+        border: none;
+        background: transparent;
+        font-size: 18px;
+        cursor: pointer;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .field {
+        margin-bottom: 10px;
+      }
+
+      .field label {
+        display: block;
+        font-size: 12px;
+        color: #475569;
+        margin-bottom: 4px;
+      }
+
+      .field input,
+      .field textarea {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 9px;
+        font-size: 13px;
+      }
+
+      .conflict-box {
+        border: 1px solid #fecaca;
+        background: #fff1f2;
+        color: #991b1b;
+        border-radius: 10px;
+        padding: 8px 10px;
+        font-size: 12px;
+        margin-bottom: 10px;
+      }
+
+      .modal-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      @media (max-width: 1100px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .search {
+          width: 180px;
+        }
+
+        .calendar-grid {
+          min-width: 780px;
+        }
+
+        .center {
+          overflow-x: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="logo">PSMS</div>
+      <div class="workspace-title" id="active-team-title">Product Squad - Team Calendar</div>
+      <input class="search" type="text" placeholder="Search appointment" />
+      <div class="user">John Doe</div>
+    </header>
+
+    <div class="app">
+      <section class="panel left">
+        <h2>Teams</h2>
+        <div class="team-list" id="team-list">
+          <div class="team-item active" data-team="Product Squad" data-count="8"> 
+            <div class="name">Product Squad</div>
+            <div class="meta">8 active members</div>
+          </div>
+          <div class="team-item" data-team="Mobile Core" data-count="6">
+            <div class="name">Mobile Core</div>
+            <div class="meta">6 active members</div>
+          </div>
+          <div class="team-item" data-team="Design Guild" data-count="10">
+            <div class="name">Design Guild</div>
+            <div class="meta">10 active members</div>
+          </div>
+          <div class="team-item" data-team="Growth Ops" data-count="5">
+            <div class="name">Growth Ops</div>
+            <div class="meta">5 active members</div>
+          </div>
+        </div>
+        <div class="left-actions">
+          <button class="btn primary" onclick="openCreateModal()">Create Appointment</button>
+          <button class="btn">My Teams</button>
+          <button class="btn">Invitations</button>
+        </div>
+      </section>
+
+      <section class="panel center">
+        <div class="calendar-toolbar">
+          <h1>Week 19</h1>
+          <div class="toolbar-actions">
+            <button class="btn">Prev</button>
+            <button class="btn">Today</button>
+            <button class="btn">Next</button>
+          </div>
+        </div>
+
+        <div class="hint-banner">Click a slot to create an appointment. Click start slot and then end slot in the same day to simulate drag-create.</div>
+
+        <div class="calendar" id="calendar-root">
+          <div class="calendar-grid" id="calendar-grid"></div>
+        </div>
+
+        <div class="suggestions">
+          <h3>Suggested time slots (click to autofill)</h3>
+          <div class="chips" id="suggestions"></div>
+        </div>
+      </section>
+
+      <section class="panel right">
+        <h2>Participant Availability</h2>
+
+        <div class="status-box">
+          <div class="status-title" id="slot-summary">No slot selected</div>
+          <div id="participant-list"></div>
+        </div>
+
+        <div class="availability">
+          <p>Availability mini-map</p>
+          <div class="mini-track">
+            <div class="track-row"><span>09:00</span><div class="track"></div></div>
+            <div class="track-row"><span>11:00</span><div class="track"></div></div>
+            <div class="track-row"><span>14:00</span><div class="track"></div></div>
+          </div>
+          <p class="summary" id="availability-summary">3 participants unavailable in selected window.</p>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-overlay" id="create-modal">
+      <div class="modal">
+        <div class="modal-head">
+          <h3>Create Team Appointment</h3>
+          <button class="close" onclick="closeCreateModal()">x</button>
+        </div>
+
+        <div class="field">
+          <label>Title *</label>
+          <input id="title-input" type="text" value="Sprint Planning" />
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>Start *</label>
+            <input id="start-input" type="datetime-local" value="2026-05-11T09:00" />
+          </div>
+          <div class="field">
+            <label>End *</label>
+            <input id="end-input" type="datetime-local" value="2026-05-11T10:00" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Description</label>
+          <textarea rows="3" placeholder="Agenda"></textarea>
+        </div>
+
+        <div class="conflict-box" id="modal-conflict">Conflict detected: Bob has personal appointment at selected time.</div>
+
+        <div class="modal-chips">
+          <button class="chip best" onclick="applySuggestion('Tue 15:00', 'Tue 16:00')">Tue 15:00 - 16:00 Best</button>
+          <button class="chip" onclick="applySuggestion('Wed 16:30', 'Wed 17:30')">Wed 16:30 - 17:30</button>
+          <button class="chip" onclick="applySuggestion('Thu 09:00', 'Thu 10:00')">Thu 09:00 - 10:00</button>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn" onclick="closeCreateModal()">Cancel</button>
+          <button class="btn primary" onclick="saveAppointment()">Save Appointment</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+      const times = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
+      const suggestions = [
+        { day: 'Tue', start: '15:00', end: '16:00', best: true },
+        { day: 'Wed', start: '16:30', end: '17:30', best: false },
+        { day: 'Thu', start: '09:00', end: '10:00', best: false },
+      ];
+
+      const participants = [
+        { name: 'John', status: 'free' },
+        { name: 'Alice', status: 'busy' },
+        { name: 'Bob', status: 'conflict' },
+        { name: 'Carol', status: 'free' },
+        { name: 'David', status: 'busy' },
+      ];
+
+      const events = {
+        'Mon-09:00': { title: 'Sprint Planning', style: 'focus' },
+        'Tue-10:00': { title: 'API Review', style: 'neutral' },
+        'Wed-13:00': { title: 'Design Sync', style: 'neutral' },
+        'Thu-09:00': { title: 'Conflict Block', style: 'conflict' },
+      };
+
+      const state = {
+        startSelection: null,
+        endSelection: null,
+      };
+
+      function renderCalendar() {
+        const grid = document.getElementById('calendar-grid');
+        grid.innerHTML = '';
+
+        grid.appendChild(cell('Time', 'header time'));
+        days.forEach(function (day) {
+          grid.appendChild(cell(day, 'header'));
+        });
+
+        times.forEach(function (time) {
+          grid.appendChild(cell(time, 'time'));
+          days.forEach(function (day) {
+            const key = day + '-' + time;
+            const slot = cell('', 'slot');
+            slot.dataset.day = day;
+            slot.dataset.time = time;
+            slot.dataset.key = key;
+
+            slot.addEventListener('click', function () {
+              selectSlot(day, time);
+            });
+
+            if (events[key]) {
+              const block = document.createElement('div');
+              block.className = 'event ' + events[key].style;
+              block.textContent = events[key].title;
+              slot.appendChild(block);
+            }
+
+            grid.appendChild(slot);
+          });
+        });
+      }
+
+      function cell(content, className) {
+        const div = document.createElement('div');
+        div.className = 'cell ' + className;
+        div.textContent = content;
+        return div;
+      }
+
+      function selectSlot(day, time) {
+        if (!state.startSelection || (state.startSelection && state.endSelection)) {
+          state.startSelection = { day: day, time: time };
+          state.endSelection = null;
+        } else if (state.startSelection.day === day) {
+          state.endSelection = { day: day, time: time };
+        } else {
+          state.startSelection = { day: day, time: time };
+          state.endSelection = null;
+        }
+
+        paintSelection();
+        updateRightPanel();
+
+        if (!state.endSelection) {
+          openCreateModal();
+          setModalTime(day, time, time);
+        } else {
+          openCreateModal();
+          setModalTime(day, state.startSelection.time, state.endSelection.time);
+        }
+      }
+
+      function paintSelection() {
+        document.querySelectorAll('.cell.slot').forEach(function (slot) {
+          slot.classList.remove('selected');
+          slot.classList.remove('range');
+
+          const day = slot.dataset.day;
+          const time = slot.dataset.time;
+
+          if (!state.startSelection) {
+            return;
+          }
+
+          if (day === state.startSelection.day && time === state.startSelection.time) {
+            slot.classList.add('selected');
+          }
+
+          if (state.endSelection && day === state.startSelection.day) {
+            const startIdx = times.indexOf(state.startSelection.time);
+            const endIdx = times.indexOf(state.endSelection.time);
+            const idx = times.indexOf(time);
+            const min = Math.min(startIdx, endIdx);
+            const max = Math.max(startIdx, endIdx);
+            if (idx >= min && idx <= max) {
+              slot.classList.add('range');
+            }
+          }
+        });
+      }
+
+      function renderSuggestions() {
+        const container = document.getElementById('suggestions');
+        container.innerHTML = '';
+
+        suggestions.forEach(function (slot) {
+          const chip = document.createElement('button');
+          chip.className = 'chip' + (slot.best ? ' best' : '');
+          chip.textContent = slot.day + ' ' + slot.start + ' - ' + slot.end + (slot.best ? ' Best' : '');
+          chip.addEventListener('click', function () {
+            autofillFromSuggestion(slot);
+          });
+          container.appendChild(chip);
+        });
+      }
+
+      function renderParticipants() {
+        const list = document.getElementById('participant-list');
+        list.innerHTML = '';
+
+        participants.forEach(function (person) {
+          const row = document.createElement('div');
+          row.className = 'participant';
+          row.innerHTML = '<span class="p-name">' + person.name + '</span><span class="badge ' + person.status + '">' + person.status.toUpperCase() + '</span>';
+          list.appendChild(row);
+        });
+      }
+
+      function updateRightPanel() {
+        const label = document.getElementById('slot-summary');
+        if (!state.startSelection) {
+          label.textContent = 'No slot selected';
+          return;
+        }
+
+        if (!state.endSelection) {
+          label.textContent = 'Selected: ' + state.startSelection.day + ' ' + state.startSelection.time;
+        } else {
+          label.textContent = 'Selected range: ' + state.startSelection.day + ' ' + state.startSelection.time + ' - ' + state.endSelection.time;
+        }
+
+        const hasConflict = state.startSelection.time === '09:00' || state.startSelection.time === '10:00';
+        document.getElementById('availability-summary').textContent = hasConflict
+          ? '3 participants unavailable in selected window.'
+          : '1 participant unavailable in selected window.';
+      }
+
+      function setModalTime(day, start, end) {
+        const map = {
+          Mon: '2026-05-11',
+          Tue: '2026-05-12',
+          Wed: '2026-05-13',
+          Thu: '2026-05-14',
+          Fri: '2026-05-15',
+        };
+
+        document.getElementById('start-input').value = map[day] + 'T' + start;
+
+        const endHour = times.indexOf(end) >= 0 ? times[Math.min(times.indexOf(end) + 1, times.length - 1)] : '10:00';
+        document.getElementById('end-input').value = map[day] + 'T' + endHour;
+
+        const conflictBox = document.getElementById('modal-conflict');
+        if (start === '09:00' || start === '10:00') {
+          conflictBox.style.display = 'block';
+          conflictBox.textContent = 'Conflict detected: Bob has personal appointment at selected time.';
+        } else {
+          conflictBox.style.display = 'block';
+          conflictBox.textContent = 'Low conflict risk. Suggested slot is likely accepted by all participants.';
+        }
+      }
+
+      function autofillFromSuggestion(slot) {
+        state.startSelection = { day: slot.day, time: slot.start };
+        state.endSelection = null;
+
+        paintSelection();
+        updateRightPanel();
+        openCreateModal();
+        setModalTime(slot.day, slot.start, slot.end);
+      }
+
+      function openCreateModal() {
+        document.getElementById('create-modal').classList.add('open');
+      }
+
+      function closeCreateModal() {
+        document.getElementById('create-modal').classList.remove('open');
+      }
+
+      function applySuggestion(startText, endText) {
+        alert('Apply suggested slot ' + startText + ' - ' + endText + ' (mockup only)');
+      }
+
+      function saveAppointment() {
+        alert('Appointment saved (mockup only)');
+      }
+
+      document.querySelectorAll('.team-item').forEach(function (item) {
+        item.addEventListener('click', function () {
+          document.querySelectorAll('.team-item').forEach(function (x) {
+            x.classList.remove('active');
+          });
+          item.classList.add('active');
+          document.getElementById('active-team-title').textContent = item.dataset.team + ' - Team Calendar';
+        });
+      });
+
+      renderCalendar();
+      renderSuggestions();
+      renderParticipants();
+      updateRightPanel();
+    </script>
+  </body>
+</html>

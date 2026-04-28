@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PSMS – Statistics Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f0f2f5; }
+    header { background: #333; color: #fff; display: flex; align-items: center; padding: 0 16px; height: 48px; gap: 12px; }
+    header .logo { font-weight: bold; font-size: 16px; margin-right: 16px; }
+    header input[type="text"] { flex: 1; max-width: 320px; padding: 6px 10px; border: none; font-size: 13px; }
+    header .notif-btn { background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; }
+    header .user-info { margin-left: auto; font-size: 13px; }
+    .layout { display: flex; min-height: calc(100vh - 48px); }
+    aside { width: 200px; background: #fff; border-right: 1px solid #ddd; padding: 16px; flex-shrink: 0; }
+    aside a { display: block; padding: 7px 8px; font-size: 14px; color: #333; text-decoration: none; border-radius: 4px; }
+    aside a:hover, aside a.active { background: #eee; font-weight: bold; }
+    main { flex: 1; padding: 20px; }
+    h2 { font-size: 20px; margin-bottom: 8px; }
+    .period-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+    .period-bar select { padding: 7px; border: 1px solid #ccc; font-size: 13px; }
+    .period-label { font-size: 13px; color: #555; }
+    .period-btn { padding: 7px 14px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 13px; }
+    .period-btn.active { background: #333; color: #fff; border-color: #333; }
+
+    /* Summary cards */
+    .summary-grid { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+    .stat-card { background: #fff; border: 1px solid #ddd; padding: 20px 24px; min-width: 160px; flex: 1; text-align: center; }
+    .stat-card .value { font-size: 36px; font-weight: bold; }
+    .stat-card .label { font-size: 12px; color: #666; margin-top: 4px; text-transform: uppercase; }
+    .stat-card.highlight .value { color: #27ae60; }
+
+    /* Charts section */
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media(max-width:700px) { .charts-grid { grid-template-columns: 1fr; } }
+    .chart-box { background: #fff; border: 1px solid #ddd; padding: 18px; }
+    .chart-box h3 { font-size: 13px; font-weight: bold; text-transform: uppercase; color: #555; margin-bottom: 14px; }
+
+    /* Horizontal bar chart */
+    .hbar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .hbar-label { width: 80px; font-size: 12px; flex-shrink: 0; text-align: right; }
+    .hbar-track { flex: 1; background: #eee; height: 20px; }
+    .hbar-fill { height: 100%; display: flex; align-items: center; padding-left: 6px; font-size: 11px; color: #fff; transition: width .4s; }
+    .hbar-count { font-size: 12px; color: #555; width: 60px; }
+
+    /* Vertical bar chart */
+    .vbar-chart { display: flex; align-items: flex-end; gap: 6px; height: 120px; border-bottom: 2px solid #ccc; padding-bottom: 4px; }
+    .vbar-col { display: flex; flex-direction: column; align-items: center; flex: 1; }
+    .vbar-bar { width: 100%; background: #4a90d9; min-height: 4px; }
+    .vbar-label { font-size: 10px; color: #888; margin-top: 4px; }
+    .vbar-val { font-size: 10px; color: #4a90d9; margin-bottom: 2px; }
+
+    /* Productive slots table */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #f5f5f5; padding: 8px 12px; text-align: left; border-bottom: 2px solid #ddd; font-size: 11px; text-transform: uppercase; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    .slot-bar { display:inline-block; background:#27ae60; height:12px; vertical-align:middle; border-radius:2px; }
+
+    .empty-state { text-align: center; padding: 40px; color: #888; font-size: 14px; background:#fff; border:1px solid #ddd; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">PSMS</span>
+  <button class="notif-btn" onclick="window.location.href='notification-log.html'">🔔</button>
+  <input type="text" placeholder="Search appointments...">
+  <span class="user-info">▸ John Doe</span>
+</header>
+
+<div class="layout">
+  <aside>
+    <a href="calendar-dashboard.html">📅 Calendar</a>
+    <a href="appointment-management.html">📋 Appointments</a>
+    <a href="tag-management.html">🏷 Tags</a>
+    <a href="reminder-settings.html">🔔 Reminders</a>
+    <a href="notification-log.html">📩 Notifications</a>
+    <a href="statistics-dashboard.html" class="active">📊 Statistics</a>
+    <a href="export-data.html">📤 Export</a>
+    <a href="profile-page.html">👤 Profile</a>
+  </aside>
+
+  <main>
+    <h2>Statistics Dashboard</h2>
+
+    <div class="period-bar">
+      <button class="period-btn active" onclick="setPeriod('week', this)">This Week</button>
+      <button class="period-btn" onclick="setPeriod('month', this)">This Month</button>
+      <span class="period-label" id="period-label">Mar 8 — Mar 14, 2026</span>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+      <div class="stat-card">
+        <div class="value" id="total-val">24</div>
+        <div class="label">Total Appointments</div>
+      </div>
+      <div class="stat-card highlight">
+        <div class="value" id="completed-val">18</div>
+        <div class="label">Completed</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" id="pending-val">6</div>
+        <div class="label">Pending</div>
+      </div>
+      <div class="stat-card highlight">
+        <div class="value" id="rate-val">75%</div>
+        <div class="label">Completion Rate</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+
+      <!-- Tag Distribution -->
+      <div class="chart-box">
+        <h3>Appointments by Tag</h3>
+        <div id="tag-chart"></div>
+      </div>
+
+      <!-- Daily Trend -->
+      <div class="chart-box">
+        <h3>Daily Completed Appointments</h3>
+        <div class="vbar-chart" id="daily-chart"></div>
+        <div style="display:flex;gap:6px;margin-top:6px;" id="daily-labels"></div>
+      </div>
+
+      <!-- Productive Slots -->
+      <div class="chart-box" style="grid-column: 1 / -1;">
+        <h3>Most Productive Time Slots</h3>
+        <table>
+          <thead><tr><th>Time Slot</th><th>Completed</th><th>Total</th><th>Rate</th><th>Visual</th></tr></thead>
+          <tbody id="slot-tbody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  const weekData = {
+    label: 'Mar 8 — Mar 14, 2026',
+    total: 24, completed: 18, pending: 6,
+    tags: [
+      { name: 'Work',     color: '#4a90d9', count: 10, pct: 42 },
+      { name: 'Personal', color: '#e67e22', count:  7, pct: 29 },
+      { name: 'Study',    color: '#27ae60', count:  4, pct: 17 },
+      { name: 'Health',   color: '#e74c3c', count:  3, pct: 12 },
+    ],
+    daily: [
+      { day: 'Mon', val: 4 }, { day: 'Tue', val: 3 }, { day: 'Wed', val: 5 },
+      { day: 'Thu', val: 2 }, { day: 'Fri', val: 4 }, { day: 'Sat', val: 0 }, { day: 'Sun', val: 0 },
+    ],
+    slots: [
+      { slot: '09:00', completed: 5, total: 6 },
+      { slot: '14:00', completed: 4, total: 5 },
+      { slot: '11:00', completed: 3, total: 4 },
+      { slot: '16:00', completed: 2, total: 3 },
+    ],
+  };
+
+  const monthData = {
+    label: 'March 2026',
+    total: 68, completed: 52, pending: 16,
+    tags: [
+      { name: 'Work',     color: '#4a90d9', count: 28, pct: 41 },
+      { name: 'Personal', color: '#e67e22', count: 18, pct: 26 },
+      { name: 'Study',    color: '#27ae60', count: 14, pct: 21 },
+      { name: 'Health',   color: '#e74c3c', count:  8, pct: 12 },
+    ],
+    daily: [
+      { day: 'W1', val: 14 }, { day: 'W2', val: 18 }, { day: 'W3', val: 11 }, { day: 'W4', val: 9 },
+    ],
+    slots: [
+      { slot: '09:00', completed: 15, total: 18 },
+      { slot: '14:00', completed: 12, total: 15 },
+      { slot: '11:00', completed: 10, total: 14 },
+      { slot: '16:00', completed:  8, total: 12 },
+    ],
+  };
+
+  let currentData = weekData;
+
+  function setPeriod(p, btn) {
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentData = p === 'week' ? weekData : monthData;
+    render();
+  }
+
+  function render() {
+    const d = currentData;
+    document.getElementById('period-label').textContent = d.label;
+    document.getElementById('total-val').textContent = d.total;
+    document.getElementById('completed-val').textContent = d.completed;
+    document.getElementById('pending-val').textContent = d.pending;
+    document.getElementById('rate-val').textContent = Math.round(d.completed / d.total * 100) + '%';
+
+    // Tag chart
+    const tagChart = document.getElementById('tag-chart');
+    tagChart.innerHTML = '';
+    d.tags.forEach(t => {
+      tagChart.innerHTML += `
+        <div class="hbar-row">
+          <span class="hbar-label">${t.name}</span>
+          <div class="hbar-track">
+            <div class="hbar-fill" style="width:${t.pct}%;background:${t.color}">${t.pct}%</div>
+          </div>
+          <span class="hbar-count">${t.count} appts</span>
+        </div>`;
+    });
+
+    // Daily chart
+    const maxVal = Math.max(...d.daily.map(x => x.val), 1);
+    const dc = document.getElementById('daily-chart');
+    const dl = document.getElementById('daily-labels');
+    dc.innerHTML = '';
+    dl.innerHTML = '';
+    d.daily.forEach(day => {
+      const pct = Math.round((day.val / maxVal) * 100);
+      dc.innerHTML += `<div class="vbar-col" style="justify-content:flex-end;height:100%">
+        <span class="vbar-val">${day.val}</span>
+        <div class="vbar-bar" style="height:${pct}%"></div>
+      </div>`;
+      dl.innerHTML += `<div class="vbar-label" style="flex:1;text-align:center">${day.day}</div>`;
+    });
+
+    // Slots table
+    const tbody = document.getElementById('slot-tbody');
+    tbody.innerHTML = '';
+    d.slots.forEach(s => {
+      const rate = Math.round(s.completed / s.total * 100);
+      tbody.innerHTML += `<tr>
+        <td>${s.slot}</td>
+        <td>${s.completed}</td>
+        <td>${s.total}</td>
+        <td>${rate}%</td>
+        <td><span class="slot-bar" style="width:${rate}px"></span></td>
+      </tr>`;
+    });
+  }
+
+  render();
+</script>
+</body>
+</html>

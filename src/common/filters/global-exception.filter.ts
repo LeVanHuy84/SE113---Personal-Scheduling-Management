@@ -19,6 +19,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     const message = this.extractMessage(exception);
 
+    const conflictPayload = this.extractConflicts(exception);
+    if (conflictPayload) {
+      response.status(status).json({
+        message,
+        conflicts: conflictPayload,
+      });
+      return;
+    }
+
     response.status(status).json({
       success: false,
       message,
@@ -57,5 +66,23 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     return 'Internal server error';
+  }
+
+  private extractConflicts(exception: unknown): unknown[] | null {
+    if (!(exception instanceof HttpException)) {
+      return null;
+    }
+
+    const exceptionResponse = exception.getResponse();
+    if (
+      !exceptionResponse ||
+      typeof exceptionResponse !== 'object' ||
+      !('conflicts' in exceptionResponse)
+    ) {
+      return null;
+    }
+
+    const conflicts = (exceptionResponse as { conflicts?: unknown }).conflicts;
+    return Array.isArray(conflicts) ? conflicts : null;
   }
 }

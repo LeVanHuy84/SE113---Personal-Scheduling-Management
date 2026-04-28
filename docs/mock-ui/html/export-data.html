@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PSMS – Export Data</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f0f2f5; }
+    header { background: #333; color: #fff; display: flex; align-items: center; padding: 0 16px; height: 48px; gap: 12px; }
+    header .logo { font-weight: bold; font-size: 16px; margin-right: 16px; }
+    header input[type="text"] { flex: 1; max-width: 320px; padding: 6px 10px; border: none; font-size: 13px; }
+    header .notif-btn { background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; }
+    header .user-info { margin-left: auto; font-size: 13px; }
+    .layout { display: flex; min-height: calc(100vh - 48px); }
+    aside { width: 200px; background: #fff; border-right: 1px solid #ddd; padding: 16px; flex-shrink: 0; }
+    aside a { display: block; padding: 7px 8px; font-size: 14px; color: #333; text-decoration: none; border-radius: 4px; }
+    aside a:hover, aside a.active { background: #eee; font-weight: bold; }
+    main { flex: 1; padding: 20px; max-width: 900px; }
+    h2 { font-size: 20px; margin-bottom: 16px; }
+    .section { background: #fff; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; }
+    .section h3 { font-size: 12px; text-transform: uppercase; color: #555; font-weight: bold; margin-bottom: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+    .form-row { margin-bottom: 14px; }
+    .form-row label.field-label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 6px; }
+    .date-range { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .date-range input { padding: 7px; border: 1px solid #ccc; font-size: 13px; }
+    .date-range span { font-size: 13px; color: #555; }
+    .checkbox-grid { display: flex; gap: 16px; flex-wrap: wrap; }
+    .checkbox-grid label { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+    .radio-row { display: flex; gap: 20px; flex-wrap: wrap; }
+    .radio-row label { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+    .record-count { font-size: 13px; color: #555; margin-bottom: 12px; }
+    .record-count strong { color: #333; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #f5f5f5; padding: 9px 12px; text-align: left; border-bottom: 2px solid #ddd; font-size: 11px; text-transform: uppercase; }
+    td { padding: 9px 12px; border-bottom: 1px solid #eee; }
+    tr:hover td { background: #fafafa; }
+    .tag-chip { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; color: #fff; margin-right: 3px; }
+    .chip-work { background: #4a90d9; } .chip-personal { background: #e67e22; }
+    .chip-study { background: #27ae60; } .chip-health { background: #e74c3c; }
+    .badge-pending { background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+    .badge-done { background: #d4edda; color: #155724; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+    .ellipsis-row td { color: #aaa; }
+    .columns-info { font-size: 12px; color: #555; margin-top: 10px; }
+    .columns-info code { background: #f5f5f5; padding: 1px 5px; font-size: 11px; }
+    .export-btn { display: block; width: 220px; padding: 11px; background: #27ae60; color: #fff; border: none; cursor: pointer; font-size: 15px; font-weight: bold; text-align: center; margin: 0 auto; }
+    .export-btn:hover { background: #219a52; }
+    .export-btn:disabled { background: #aaa; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">PSMS</span>
+  <button class="notif-btn" onclick="window.location.href='notification-log.html'">🔔</button>
+  <input type="text" placeholder="Search appointments...">
+  <span class="user-info">▸ John Doe</span>
+</header>
+
+<div class="layout">
+  <aside>
+    <a href="calendar-dashboard.html">📅 Calendar</a>
+    <a href="appointment-management.html">📋 Appointments</a>
+    <a href="tag-management.html">🏷 Tags</a>
+    <a href="reminder-settings.html">🔔 Reminders</a>
+    <a href="notification-log.html">📩 Notifications</a>
+    <a href="statistics-dashboard.html">📊 Statistics</a>
+    <a href="export-data.html" class="active">📤 Export</a>
+    <a href="profile-page.html">👤 Profile</a>
+  </aside>
+
+  <main>
+    <h2>Export Appointment Data</h2>
+
+    <!-- Filters -->
+    <div class="section">
+      <h3>Export Filters</h3>
+
+      <div class="form-row">
+        <label class="field-label">Date Range</label>
+        <div class="date-range">
+          <span>From</span>
+          <input type="date" id="date-from" value="2026-01-01" onchange="applyFilters()">
+          <span>To</span>
+          <input type="date" id="date-to" value="2026-03-31" onchange="applyFilters()">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label class="field-label">Tags</label>
+        <div class="checkbox-grid">
+          <label><input type="checkbox" class="tag-cb" value="Work" checked onchange="applyFilters()"> <span class="tag-chip chip-work">Work</span></label>
+          <label><input type="checkbox" class="tag-cb" value="Personal" checked onchange="applyFilters()"> <span class="tag-chip chip-personal">Personal</span></label>
+          <label><input type="checkbox" class="tag-cb" value="Study" checked onchange="applyFilters()"> <span class="tag-chip chip-study">Study</span></label>
+          <label><input type="checkbox" class="tag-cb" value="Health" checked onchange="applyFilters()"> <span class="tag-chip chip-health">Health</span></label>
+          <label><input type="checkbox" id="all-tags" onchange="toggleAllTags(this)"> All Tags (toggle)</label>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label class="field-label">Status</label>
+        <div class="radio-row">
+          <label><input type="radio" name="status-filter" value="all" checked onchange="applyFilters()"> All</label>
+          <label><input type="radio" name="status-filter" value="Pending" onchange="applyFilters()"> Pending only</label>
+          <label><input type="radio" name="status-filter" value="Completed" onchange="applyFilters()"> Completed only</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview -->
+    <div class="section">
+      <h3>Preview</h3>
+      <p class="record-count">Records matching filters: <strong id="match-count">0</strong> appointments</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Title</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Tags</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="preview-tbody">
+        </tbody>
+      </table>
+
+      <p class="columns-info">
+        Exported CSV columns:
+        <code>Title</code> <code>Start Time</code> <code>End Time</code> <code>Status</code> <code>Tags</code>
+      </p>
+    </div>
+
+    <!-- Export Button -->
+    <button class="export-btn" id="export-btn" onclick="exportCSV()">📥 Export to CSV</button>
+
+  </main>
+</div>
+
+<script>
+  const allData = [
+    { date: '2026-01-15', title: 'Project Kickoff',       start: '09:00', end: '10:30', tags: ['Work'],     status: 'Completed' },
+    { date: '2026-01-22', title: 'Study Session',         start: '14:00', end: '16:00', tags: ['Study'],    status: 'Completed' },
+    { date: '2026-02-03', title: 'Doctor Checkup',        start: '11:00', end: '11:30', tags: ['Health'],   status: 'Completed' },
+    { date: '2026-02-10', title: 'Family Dinner',         start: '19:00', end: '21:00', tags: ['Personal'], status: 'Completed' },
+    { date: '2026-02-17', title: 'Sprint Planning',       start: '09:00', end: '11:00', tags: ['Work'],     status: 'Completed' },
+    { date: '2026-03-05', title: 'Code Review',           start: '14:00', end: '15:00', tags: ['Work'],     status: 'Completed' },
+    { date: '2026-03-07', title: 'Gym Session',           start: '07:00', end: '08:00', tags: ['Health'],   status: 'Completed' },
+    { date: '2026-03-10', title: 'Exam Prep',             start: '10:00', end: '12:00', tags: ['Study'],    status: 'Pending'   },
+    { date: '2026-03-12', title: 'Team Standup',          start: '09:00', end: '09:30', tags: ['Work'],     status: 'Completed' },
+    { date: '2026-03-14', title: 'Doctor Appointment',    start: '11:00', end: '12:00', tags: ['Health'],   status: 'Pending'   },
+    { date: '2026-03-14', title: 'Team Standup',          start: '09:00', end: '09:30', tags: ['Work'],     status: 'Pending'   },
+    { date: '2026-03-16', title: 'Sprint Review',         start: '10:00', end: '11:30', tags: ['Work'],     status: 'Pending'   },
+    { date: '2026-03-18', title: 'Study Session — Final', start: '13:00', end: '16:00', tags: ['Study'],    status: 'Pending'   },
+    { date: '2026-03-20', title: 'Client Presentation',   start: '14:00', end: '15:00', tags: ['Work'],     status: 'Pending'   },
+    { date: '2026-03-25', title: 'Retrospective',         start: '15:00', end: '16:00', tags: ['Work'],     status: 'Pending'   },
+  ];
+
+  const tagColors = { Work: 'chip-work', Personal: 'chip-personal', Study: 'chip-study', Health: 'chip-health' };
+
+  function applyFilters() {
+    const from = document.getElementById('date-from').value;
+    const to   = document.getElementById('date-to').value;
+    const checkedTags = [...document.querySelectorAll('.tag-cb:checked')].map(cb => cb.value);
+    const status = document.querySelector('input[name="status-filter"]:checked').value;
+
+    const filtered = allData.filter(r => {
+      const inDate   = r.date >= from && r.date <= to;
+      const inTags   = checkedTags.length === 0 || r.tags.some(t => checkedTags.includes(t));
+      const inStatus = status === 'all' || r.status === status;
+      return inDate && inTags && inStatus;
+    });
+
+    document.getElementById('match-count').textContent = filtered.length;
+
+    const tbody = document.getElementById('preview-tbody');
+    tbody.innerHTML = '';
+    const preview = filtered.slice(0, 5);
+    preview.forEach(r => {
+      const tagChips = r.tags.map(t => `<span class="tag-chip ${tagColors[t] || ''}">${t}</span>`).join('');
+      const statusBadge = r.status === 'Completed' ? `<span class="badge-done">Completed</span>` : `<span class="badge-pending">Pending</span>`;
+      tbody.innerHTML += `<tr><td>${r.date}</td><td>${r.title}</td><td>${r.start}</td><td>${r.end}</td><td>${tagChips}</td><td>${statusBadge}</td></tr>`;
+    });
+    if (filtered.length > 5) {
+      tbody.innerHTML += `<tr class="ellipsis-row"><td colspan="6" style="text-align:center;color:#aaa;font-size:12px;">... and ${filtered.length - 5} more records</td></tr>`;
+    }
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#aaa;padding:16px;">No records match the current filters.</td></tr>`;
+    }
+
+    document.getElementById('export-btn').disabled = filtered.length === 0;
+  }
+
+  function toggleAllTags(master) {
+    document.querySelectorAll('.tag-cb').forEach(cb => cb.checked = master.checked);
+    applyFilters();
+  }
+
+  function exportCSV() {
+    const from = document.getElementById('date-from').value;
+    const to   = document.getElementById('date-to').value;
+    const checkedTags = [...document.querySelectorAll('.tag-cb:checked')].map(cb => cb.value);
+    const status = document.querySelector('input[name="status-filter"]:checked').value;
+
+    const filtered = allData.filter(r => {
+      const inDate   = r.date >= from && r.date <= to;
+      const inTags   = checkedTags.length === 0 || r.tags.some(t => checkedTags.includes(t));
+      const inStatus = status === 'all' || r.status === status;
+      return inDate && inTags && inStatus;
+    });
+
+    const header = ['Title', 'Start Date', 'Start Time', 'End Time', 'Status', 'Tags'];
+    const rows = filtered.map(r => [
+      `"${r.title}"`, r.date, r.start, r.end, r.status, `"${r.tags.join('; ')}"`
+    ]);
+
+    const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `appointments_export_${from}_to_${to}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  applyFilters();
+</script>
+</body>
+</html>
