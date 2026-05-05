@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { NotificationType } from "@prisma/client";
+import { UserDeviceService } from "src/device/user-device.service";
 import { FirebaseService } from "src/firebase/firebase.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { UserService } from "src/user/user.service";
@@ -9,7 +10,7 @@ export class NotificationService {
   constructor(
     private prisma: PrismaService,
     private firebaseService: FirebaseService,
-    private userDeviceService: UserService,
+    private userDeviceService: UserDeviceService,
   ) { }
 
   async sendAndCreateNotification(input: {
