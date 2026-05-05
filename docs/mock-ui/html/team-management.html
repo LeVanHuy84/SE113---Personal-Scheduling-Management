@@ -28,8 +28,12 @@
       }
 
       body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background: radial-gradient(circle at top right, #eef4ff 0%, var(--bg) 45%);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: radial-gradient(
+          circle at top right,
+          #eef4ff 0%,
+          var(--bg) 45%
+        );
         color: var(--text);
       }
 
@@ -142,6 +146,12 @@
         background: var(--primary-strong);
       }
 
+      .btn:disabled,
+      .chip-btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+
       .grid {
         display: grid;
         gap: 14px;
@@ -154,7 +164,9 @@
         border-radius: var(--radius);
         box-shadow: var(--shadow);
         padding: 16px;
-        transition: transform 0.18s ease, box-shadow 0.18s ease;
+        transition:
+          transform 0.18s ease,
+          box-shadow 0.18s ease;
       }
 
       .team-card:hover {
@@ -244,6 +256,13 @@
         margin-bottom: 8px;
       }
 
+      .section-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #334155;
+        margin: 14px 0 8px;
+      }
+
       .summary-row {
         display: flex;
         flex-wrap: wrap;
@@ -263,6 +282,104 @@
       .summary-actions {
         display: flex;
         gap: 8px;
+      }
+
+      .member-list,
+      .invitation-list {
+        display: grid;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .member-row,
+      .invitation-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 10px;
+        align-items: center;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 12px;
+        background: #fff;
+      }
+
+      .member-row .name,
+      .invitation-row .name {
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .member-row .meta,
+      .invitation-row .meta {
+        margin: 2px 0 0;
+      }
+
+      .member-copy,
+      .invitation-copy {
+        min-width: 0;
+      }
+
+      .member-actions,
+      .invitation-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+      }
+
+      .role-select {
+        min-width: 132px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 8px 10px;
+        font-size: 12px;
+        background: #fff;
+      }
+
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .status-badge.pending {
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      .status-badge.accepted {
+        background: #dcfce7;
+        color: #166534;
+      }
+
+      .status-badge.declined {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+
+      .status-badge.expired {
+        background: #e2e8f0;
+        color: #475569;
+      }
+
+      .inline-note {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #64748b;
+      }
+
+      .inline-warning {
+        margin-top: 8px;
+        border: 1px solid #fde68a;
+        background: #fff8db;
+        color: #92400e;
+        border-radius: 10px;
+        padding: 8px 10px;
+        font-size: 12px;
       }
 
       .modal-overlay {
@@ -386,16 +503,24 @@
       <main>
         <div class="header-row">
           <h1>Team Hub</h1>
-          <button class="btn primary" onclick="openModal('create-team')">Create Team</button>
+          <button class="btn primary" onclick="openModal('create-team')">
+            Create Team
+          </button>
           <div class="tabs">
             <button class="btn">My Teams</button>
             <button class="btn">Invitations</button>
-            <button class="btn">Archived</button>
           </div>
         </div>
 
         <section class="grid">
-          <article class="team-card" data-name="Product Squad" data-role="OWNER" data-members="12" data-next="Tue 10:00 - Sprint Planning" data-pending="2">
+          <article
+            class="team-card"
+            data-name="Product Squad"
+            data-role="OWNER"
+            data-members="12"
+            data-next="Tue 10:00 - Sprint Planning"
+            data-pending="2"
+          >
             <div class="team-top">
               <div class="team-name">Product Squad</div>
               <span class="role owner">OWNER</span>
@@ -406,13 +531,26 @@
               <div class="value">Tue 10:00 - Sprint Planning</div>
             </div>
             <div class="actions">
-              <button class="chip-btn" onclick="openTeam('Product Squad')">Open</button>
-              <button class="chip-btn" onclick="openModal('invite')">Invite</button>
-              <button class="chip-btn" onclick="scheduleTeam('Product Squad')">Schedule</button>
+              <button class="chip-btn" onclick="openTeam('Product Squad')">
+                Open
+              </button>
+              <button class="chip-btn" onclick="openModal('invite')">
+                Invite
+              </button>
+              <button class="chip-btn" onclick="scheduleTeam('Product Squad')">
+                Schedule
+              </button>
             </div>
           </article>
 
-          <article class="team-card" data-name="Mobile Core" data-role="ADMIN" data-members="8" data-next="Tue 16:00 - API Review" data-pending="1">
+          <article
+            class="team-card"
+            data-name="Mobile Core"
+            data-role="ADMIN"
+            data-members="8"
+            data-next="Tue 16:00 - API Review"
+            data-pending="1"
+          >
             <div class="team-top">
               <div class="team-name">Mobile Core</div>
               <span class="role admin">ADMIN</span>
@@ -423,13 +561,26 @@
               <div class="value">Tue 16:00 - API Review</div>
             </div>
             <div class="actions">
-              <button class="chip-btn" onclick="openTeam('Mobile Core')">Open</button>
-              <button class="chip-btn" onclick="openModal('invite')">Invite</button>
-              <button class="chip-btn" onclick="scheduleTeam('Mobile Core')">Schedule</button>
+              <button class="chip-btn" onclick="openTeam('Mobile Core')">
+                Open
+              </button>
+              <button class="chip-btn" onclick="openModal('invite')">
+                Invite
+              </button>
+              <button class="chip-btn" onclick="scheduleTeam('Mobile Core')">
+                Schedule
+              </button>
             </div>
           </article>
 
-          <article class="team-card" data-name="Design Guild" data-role="MEMBER" data-members="15" data-next="Wed 14:00 - Design Critique" data-pending="0">
+          <article
+            class="team-card"
+            data-name="Design Guild"
+            data-role="MEMBER"
+            data-members="15"
+            data-next="Wed 14:00 - Design Critique"
+            data-pending="0"
+          >
             <div class="team-top">
               <div class="team-name">Design Guild</div>
               <span class="role member">MEMBER</span>
@@ -440,13 +591,34 @@
               <div class="value">Wed 14:00 - Design Critique</div>
             </div>
             <div class="actions">
-              <button class="chip-btn" onclick="openTeam('Design Guild')">Open</button>
-              <button class="chip-btn" onclick="openModal('invite')">Invite</button>
-              <button class="chip-btn" onclick="scheduleTeam('Design Guild')">Schedule</button>
+              <button class="chip-btn" onclick="openTeam('Design Guild')">
+                Open
+              </button>
+              <button
+                class="chip-btn"
+                disabled
+                title="Only Team Owner or Team Admin can invite"
+              >
+                Invite
+              </button>
+              <button
+                class="chip-btn"
+                disabled
+                title="Only Team Owner or Team Admin can schedule"
+              >
+                Schedule
+              </button>
             </div>
           </article>
 
-          <article class="team-card" data-name="Growth Ops" data-role="MEMBER" data-members="6" data-next="Thu 09:30 - Q2 Planning" data-pending="3">
+          <article
+            class="team-card"
+            data-name="Growth Ops"
+            data-role="MEMBER"
+            data-members="6"
+            data-next="Thu 09:30 - Q2 Planning"
+            data-pending="3"
+          >
             <div class="team-top">
               <div class="team-name">Growth Ops</div>
               <span class="role member">MEMBER</span>
@@ -457,9 +629,23 @@
               <div class="value">Thu 09:30 - Q2 Planning</div>
             </div>
             <div class="actions">
-              <button class="chip-btn" onclick="openTeam('Growth Ops')">Open</button>
-              <button class="chip-btn" onclick="openModal('invite')">Invite</button>
-              <button class="chip-btn" onclick="scheduleTeam('Growth Ops')">Schedule</button>
+              <button class="chip-btn" onclick="openTeam('Growth Ops')">
+                Open
+              </button>
+              <button
+                class="chip-btn"
+                disabled
+                title="Only Team Owner or Team Admin can invite"
+              >
+                Invite
+              </button>
+              <button
+                class="chip-btn"
+                disabled
+                title="Only Team Owner or Team Admin can schedule"
+              >
+                Schedule
+              </button>
             </div>
           </article>
         </section>
@@ -469,13 +655,135 @@
           <div class="summary-row">
             <span class="pill" id="selected-role">Role: OWNER</span>
             <span class="pill" id="selected-members">Active members: 12</span>
-            <span class="pill" id="selected-next">Next: Tue 10:00 - Sprint Planning</span>
+            <span class="pill" id="selected-next"
+              >Next: Tue 10:00 - Sprint Planning</span
+            >
             <span class="pill" id="selected-pending">Pending invites: 2</span>
           </div>
           <div class="summary-actions">
             <button class="btn">View Members</button>
-            <button class="btn" onclick="openModal('invite')">Invite</button>
+            <button
+              class="btn"
+              id="team-summary-invite"
+              onclick="openModal('invite')"
+            >
+              Invite
+            </button>
             <button class="btn" onclick="openModal('leave')">Leave Team</button>
+          </div>
+
+          <div class="inline-note">
+            Role changes are limited to ADMIN and MEMBER. Owners cannot be
+            reassigned through member role change.
+          </div>
+
+          <div class="section-title">Members</div>
+          <div class="member-list">
+            <div class="member-row">
+              <div class="member-copy">
+                <div class="name">John Doe</div>
+                <p class="meta">john@psms.app · OWNER · active</p>
+              </div>
+              <span class="status-badge accepted">OWNER</span>
+              <div class="member-actions">
+                <select class="role-select" disabled>
+                  <option>OWNER</option>
+                </select>
+                <button class="btn" disabled title="Owner role is immutable">
+                  Change role
+                </button>
+                <button
+                  class="btn"
+                  disabled
+                  title="Owner cannot be removed without ownership transfer"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+
+            <div class="member-row">
+              <div class="member-copy">
+                <div class="name">Avery Chen</div>
+                <p class="meta">avery@psms.app · ADMIN · active</p>
+              </div>
+              <span class="status-badge accepted">ADMIN</span>
+              <div class="member-actions">
+                <select class="role-select">
+                  <option selected>ADMIN</option>
+                  <option>MEMBER</option>
+                </select>
+                <button class="btn">Change role</button>
+                <button class="btn">Remove</button>
+              </div>
+            </div>
+
+            <div class="member-row">
+              <div class="member-copy">
+                <div class="name">Jordan Lee</div>
+                <p class="meta">jordan@psms.app · MEMBER · active</p>
+              </div>
+              <span class="status-badge accepted">MEMBER</span>
+              <div class="member-actions">
+                <select class="role-select">
+                  <option>ADMIN</option>
+                  <option selected>MEMBER</option>
+                </select>
+                <button class="btn">Change role</button>
+                <button class="btn">Remove</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">Invitations</div>
+          <div class="invitation-list">
+            <div class="invitation-row">
+              <div class="invitation-copy">
+                <div class="name">Mia Foster</div>
+                <p class="meta">mia.foster@example.com · target role: MEMBER</p>
+              </div>
+              <span class="status-badge pending">PENDING</span>
+              <div class="invitation-actions">
+                <button class="btn">Resend</button>
+                <button class="btn">Cancel</button>
+              </div>
+            </div>
+
+            <div class="invitation-row">
+              <div class="invitation-copy">
+                <div class="name">Noah Park</div>
+                <p class="meta">noah.park@example.com · target role: ADMIN</p>
+              </div>
+              <span class="status-badge accepted">ACCEPTED</span>
+              <div class="invitation-actions">
+                <button class="btn" disabled>Resend</button>
+                <button class="btn" disabled>Cancel</button>
+              </div>
+            </div>
+
+            <div class="invitation-row">
+              <div class="invitation-copy">
+                <div class="name">Sara Kim</div>
+                <p class="meta">sara.kim@example.com · target role: MEMBER</p>
+              </div>
+              <span class="status-badge declined">DECLINED</span>
+              <div class="invitation-actions">
+                <button class="btn" disabled>Resend</button>
+                <button class="btn" disabled>Cancel</button>
+              </div>
+            </div>
+
+            <div class="invitation-row">
+              <div class="invitation-copy">
+                <div class="name">Expired Invite</div>
+                <p class="meta">old-member@example.com · target role: MEMBER</p>
+              </div>
+              <span class="status-badge expired">EXPIRED</span>
+              <div class="invitation-actions">
+                <button class="btn" disabled>Resend</button>
+                <button class="btn" disabled>Cancel</button>
+              </div>
+            </div>
           </div>
         </section>
       </main>
@@ -497,8 +805,12 @@
         </div>
         <p class="hint">Team name must be unique within owner scope (BR-38).</p>
         <div class="modal-actions">
-          <button class="btn" onclick="closeModal('create-team')">Cancel</button>
-          <button class="btn primary" onclick="mockSave('Team created')">Create Team</button>
+          <button class="btn" onclick="closeModal('create-team')">
+            Cancel
+          </button>
+          <button class="btn primary" onclick="mockSave('Team created')">
+            Create Team
+          </button>
         </div>
       </div>
     </div>
@@ -516,18 +828,26 @@
         <div class="field">
           <label>Role</label>
           <select>
-            <option>MEMBER</option>
             <option>ADMIN</option>
+            <option>MEMBER</option>
           </select>
         </div>
         <div class="field">
           <label>Expiration (optional)</label>
           <input type="datetime-local" value="2026-06-30T23:59" />
         </div>
-        <p class="hint">Only OWNER or ADMIN can invite members (BR-40, BR-42).</p>
+        <p class="hint">
+          Invitation target role is limited to ADMIN or MEMBER. OWNER is not
+          allowed.
+        </p>
+        <div class="inline-warning">
+          Invitation status lifecycle: PENDING, ACCEPTED, DECLINED, EXPIRED.
+        </div>
         <div class="modal-actions">
           <button class="btn" onclick="closeModal('invite')">Cancel</button>
-          <button class="btn primary" onclick="mockSave('Invitation sent')">Send Invite</button>
+          <button class="btn primary" onclick="mockSave('Invitation sent')">
+            Send Invite
+          </button>
         </div>
       </div>
     </div>
@@ -539,12 +859,19 @@
           <button class="close" onclick="closeModal('leave')">x</button>
         </div>
         <div class="warning">
-          Owner must transfer ownership before leaving (BR-43). Removed members lose access immediately (BR-44).
+          Owner must transfer ownership before leaving (BR-43). Removed members
+          lose access immediately (BR-44).
         </div>
         <p class="hint">Leave selected team?</p>
         <div class="modal-actions">
           <button class="btn" onclick="closeModal('leave')">Cancel</button>
-          <button class="btn" style="border-color:#fecaca;color:#b91c1c;" onclick="mockSave('Leave request submitted')">Leave Team</button>
+          <button
+            class="btn"
+            style="border-color: #fecaca; color: #b91c1c"
+            onclick="mockSave('Leave request submitted')"
+          >
+            Leave Team
+          </button>
         </div>
       </div>
     </div>
@@ -567,7 +894,11 @@
       }
 
       function scheduleTeam(teamName) {
-        alert('Navigate to Team Appointment page for ' + teamName + ' (mockup only)');
+        alert(
+          'Navigate to Team Appointment page for ' +
+            teamName +
+            ' (mockup only)',
+        );
       }
 
       document.querySelectorAll('.team-card').forEach(function (card) {
@@ -576,11 +907,24 @@
             return;
           }
 
-          document.getElementById('selected-team').textContent = card.dataset.name;
-          document.getElementById('selected-role').textContent = 'Role: ' + card.dataset.role;
-          document.getElementById('selected-members').textContent = 'Active members: ' + card.dataset.members;
-          document.getElementById('selected-next').textContent = 'Next: ' + card.dataset.next;
-          document.getElementById('selected-pending').textContent = 'Pending invites: ' + card.dataset.pending;
+          document.getElementById('selected-team').textContent =
+            card.dataset.name;
+          document.getElementById('selected-role').textContent =
+            'Role: ' + card.dataset.role;
+          document.getElementById('selected-members').textContent =
+            'Active members: ' + card.dataset.members;
+          document.getElementById('selected-next').textContent =
+            'Next: ' + card.dataset.next;
+          document.getElementById('selected-pending').textContent =
+            'Pending invites: ' + card.dataset.pending;
+
+          const inviteButton = document.getElementById('team-summary-invite');
+          const canInvite =
+            card.dataset.role === 'OWNER' || card.dataset.role === 'ADMIN';
+          inviteButton.disabled = !canInvite;
+          inviteButton.title = canInvite
+            ? ''
+            : 'Only Team Owner or Team Admin can invite';
         });
       });
     </script>

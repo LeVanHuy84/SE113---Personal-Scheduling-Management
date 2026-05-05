@@ -29,8 +29,12 @@
       }
 
       body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background: radial-gradient(circle at top left, #eef3ff 0%, var(--bg) 40%);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: radial-gradient(
+          circle at top left,
+          #eef3ff 0%,
+          var(--bg) 40%
+        );
         color: var(--text);
       }
 
@@ -103,7 +107,9 @@
         border-radius: 10px;
         padding: 10px;
         cursor: pointer;
-        transition: border-color 0.16s ease, background 0.16s ease;
+        transition:
+          border-color 0.16s ease,
+          background 0.16s ease;
       }
 
       .team-item.active {
@@ -148,6 +154,11 @@
         font-weight: 600;
       }
 
+      .btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+
       .center {
         display: grid;
         grid-template-rows: auto auto 1fr auto;
@@ -175,6 +186,15 @@
         border: 1px dashed #bcd0f8;
         background: #f3f7ff;
         color: #36508a;
+        border-radius: 10px;
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+
+      .warning-banner {
+        border: 1px solid #fde68a;
+        background: #fff8db;
+        color: #92400e;
         border-radius: 10px;
         padding: 8px 10px;
         font-size: 12px;
@@ -287,6 +307,114 @@
         font-weight: 700;
       }
 
+      .result-card {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px;
+        background: #fff;
+        margin-top: 10px;
+      }
+
+      .result-card h3 {
+        font-size: 12px;
+        margin-bottom: 8px;
+        color: #475569;
+      }
+
+      .result-list {
+        display: grid;
+        gap: 7px;
+      }
+
+      .result-item {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+        font-size: 12px;
+      }
+
+      .status-pill {
+        font-size: 10px;
+        font-weight: 700;
+        border-radius: 999px;
+        padding: 4px 8px;
+      }
+
+      .status-pill.available {
+        background: var(--free-soft);
+        color: #166534;
+      }
+
+      .status-pill.busy {
+        background: var(--busy-soft);
+        color: #92400e;
+      }
+
+      .status-pill.conflict {
+        background: var(--danger-soft);
+        color: #991b1b;
+      }
+
+      .detail-card {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #fff;
+        padding: 10px;
+      }
+
+      .detail-card h3 {
+        font-size: 12px;
+        margin-bottom: 7px;
+        color: #475569;
+      }
+
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 12px;
+        padding: 6px 0;
+        border-bottom: 1px solid #f0f4fa;
+      }
+
+      .detail-row:last-child {
+        border-bottom: none;
+      }
+
+      .availability-note {
+        margin-bottom: 8px;
+        font-size: 12px;
+        color: #475569;
+      }
+
+      .picker-list {
+        display: grid;
+        gap: 7px;
+        margin-top: 6px;
+      }
+
+      .picker-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+
+      .picker-item span:last-child {
+        color: #64748b;
+      }
+
+      .modal-actions .btn.secondary {
+        border-color: #bfd0f2;
+        background: #eef4ff;
+        color: #1d4ed8;
+      }
+
       .right {
         display: grid;
         grid-template-rows: auto auto 1fr;
@@ -379,7 +507,12 @@
       .track {
         height: 12px;
         border-radius: 999px;
-        background: linear-gradient(90deg, #22c55e 0 45%, #f59e0b 45% 70%, #ef4444 70% 100%);
+        background: linear-gradient(
+          90deg,
+          #22c55e 0 45%,
+          #f59e0b 45% 70%,
+          #ef4444 70% 100%
+        );
       }
 
       .summary {
@@ -500,7 +633,9 @@
   <body>
     <header class="topbar">
       <div class="logo">PSMS</div>
-      <div class="workspace-title" id="active-team-title">Product Squad - Team Calendar</div>
+      <div class="workspace-title" id="active-team-title">
+        Product Squad - Team Calendar
+      </div>
       <input class="search" type="text" placeholder="Search appointment" />
       <div class="user">John Doe</div>
     </header>
@@ -509,7 +644,11 @@
       <section class="panel left">
         <h2>Teams</h2>
         <div class="team-list" id="team-list">
-          <div class="team-item active" data-team="Product Squad" data-count="8"> 
+          <div
+            class="team-item active"
+            data-team="Product Squad"
+            data-count="8"
+          >
             <div class="name">Product Squad</div>
             <div class="meta">8 active members</div>
           </div>
@@ -527,7 +666,9 @@
           </div>
         </div>
         <div class="left-actions">
-          <button class="btn primary" onclick="openCreateModal()">Create Appointment</button>
+          <button class="btn primary" onclick="openCreateModal()">
+            Create Appointment
+          </button>
           <button class="btn">My Teams</button>
           <button class="btn">Invitations</button>
         </div>
@@ -543,34 +684,115 @@
           </div>
         </div>
 
-        <div class="hint-banner">Click a slot to create an appointment. Click start slot and then end slot in the same day to simulate drag-create.</div>
+        <div class="hint-banner">
+          Click a slot to create an appointment. The availability check is shown
+          separately in the right panel.
+        </div>
 
         <div class="calendar" id="calendar-root">
           <div class="calendar-grid" id="calendar-grid"></div>
         </div>
-
-        <div class="suggestions">
-          <h3>Suggested time slots (click to autofill)</h3>
-          <div class="chips" id="suggestions"></div>
-        </div>
       </section>
 
       <section class="panel right">
-        <h2>Participant Availability</h2>
+        <h2>Availability & Details</h2>
+
+        <div class="detail-card">
+          <h3>Appointment actions</h3>
+          <div class="detail-row">
+            <span>Selected item</span>
+            <span>Sprint Planning</span>
+          </div>
+          <div class="detail-row">
+            <span>Organizer</span>
+            <span>John Doe</span>
+          </div>
+          <div class="detail-row">
+            <span>Permission note</span>
+            <span>OWNER / ADMIN / organizer only</span>
+          </div>
+          <div class="toolbar-actions" style="margin-top: 10px">
+            <button class="btn">Edit Appointment</button>
+            <button
+              class="btn"
+              disabled
+              title="Only OWNER, ADMIN, or organizer can delete"
+            >
+              Delete Appointment
+            </button>
+          </div>
+        </div>
 
         <div class="status-box">
           <div class="status-title" id="slot-summary">No slot selected</div>
           <div id="participant-list"></div>
         </div>
 
-        <div class="availability">
-          <p>Availability mini-map</p>
-          <div class="mini-track">
-            <div class="track-row"><span>09:00</span><div class="track"></div></div>
-            <div class="track-row"><span>11:00</span><div class="track"></div></div>
-            <div class="track-row"><span>14:00</span><div class="track"></div></div>
+        <div class="suggestions">
+          <h3>Availability check result</h3>
+          <div class="availability-note">
+            Separate action. Conflicts are warnings, not blocking errors.
           </div>
-          <p class="summary" id="availability-summary">3 participants unavailable in selected window.</p>
+          <div class="mini-track">
+            <div class="track-row">
+              <span>09:00</span>
+              <div class="track"></div>
+            </div>
+            <div class="track-row">
+              <span>11:00</span>
+              <div class="track"></div>
+            </div>
+            <div class="track-row">
+              <span>14:00</span>
+              <div class="track"></div>
+            </div>
+          </div>
+          <div class="result-card">
+            <h3>Available participants</h3>
+            <div class="result-list">
+              <div class="result-item">
+                <span>John Doe</span
+                ><span class="status-pill available">AVAILABLE</span>
+              </div>
+              <div class="result-item">
+                <span>Carol Le</span
+                ><span class="status-pill available">AVAILABLE</span>
+              </div>
+            </div>
+          </div>
+          <div class="result-card">
+            <h3>Busy participants</h3>
+            <div class="result-list">
+              <div class="result-item">
+                <span>Alice Nguyen</span
+                ><span class="status-pill busy">BUSY</span>
+              </div>
+              <div class="result-item">
+                <span>David Tran</span
+                ><span class="status-pill busy">BUSY</span>
+              </div>
+            </div>
+          </div>
+          <div class="result-card">
+            <h3>Conflicts</h3>
+            <div class="result-list">
+              <div class="result-item">
+                <span>Alice Nguyen · personal appointment 09:00-10:00</span
+                ><span class="status-pill conflict">CONFLICT</span>
+              </div>
+              <div class="result-item">
+                <span>Bob Tran · team overlap 09:30-10:30</span
+                ><span class="status-pill conflict">CONFLICT</span>
+              </div>
+            </div>
+          </div>
+          <div class="result-card">
+            <h3>Suggested time slots</h3>
+            <div class="chips" id="suggestions"></div>
+          </div>
+          <p class="summary" id="availability-summary">
+            3 participants unavailable in selected window.
+          </p>
         </div>
       </section>
     </div>
@@ -578,8 +800,13 @@
     <div class="modal-overlay" id="create-modal">
       <div class="modal">
         <div class="modal-head">
-          <h3>Create Team Appointment</h3>
+          <h3>Create / Edit Team Appointment</h3>
           <button class="close" onclick="closeCreateModal()">x</button>
+        </div>
+
+        <div class="warning-banner">
+          Organizer is implicit from the signed-in user and is always included
+          as a required participant.
         </div>
 
         <div class="field">
@@ -587,14 +814,31 @@
           <input id="title-input" type="text" value="Sprint Planning" />
         </div>
 
+        <div class="field">
+          <label>Location</label>
+          <input
+            type="text"
+            value="Meeting room A"
+            placeholder="Meeting room A"
+          />
+        </div>
+
         <div class="form-row">
           <div class="field">
             <label>Start *</label>
-            <input id="start-input" type="datetime-local" value="2026-05-11T09:00" />
+            <input
+              id="start-input"
+              type="datetime-local"
+              value="2026-05-11T09:00"
+            />
           </div>
           <div class="field">
             <label>End *</label>
-            <input id="end-input" type="datetime-local" value="2026-05-11T10:00" />
+            <input
+              id="end-input"
+              type="datetime-local"
+              value="2026-05-11T10:00"
+            />
           </div>
         </div>
 
@@ -603,24 +847,64 @@
           <textarea rows="3" placeholder="Agenda"></textarea>
         </div>
 
-        <div class="conflict-box" id="modal-conflict">Conflict detected: Bob has personal appointment at selected time.</div>
+        <div class="field">
+          <label>Required participants</label>
+          <div class="picker-list">
+            <label class="picker-item"
+              ><span>Alice Nguyen</span
+              ><span><input type="checkbox" checked /></span
+            ></label>
+            <label class="picker-item"
+              ><span>Bob Tran</span
+              ><span><input type="checkbox" checked /></span
+            ></label>
+            <label class="picker-item"
+              ><span>Carol Le</span><span><input type="checkbox" /></span
+            ></label>
+          </div>
+          <div class="availability-note">
+            Map this selection to participantUserIds. The organizer is included
+            automatically.
+          </div>
+        </div>
 
-        <div class="modal-chips">
-          <button class="chip best" onclick="applySuggestion('Tue 15:00', 'Tue 16:00')">Tue 15:00 - 16:00 Best</button>
-          <button class="chip" onclick="applySuggestion('Wed 16:30', 'Wed 17:30')">Wed 16:30 - 17:30</button>
-          <button class="chip" onclick="applySuggestion('Thu 09:00', 'Thu 10:00')">Thu 09:00 - 10:00</button>
+        <div class="conflict-box" id="modal-conflict">
+          <strong>Warning:</strong> participant conflicts do not block saving.
+          <div id="modal-conflict-list">
+            Bob Tran overlaps with a personal appointment from 09:30-10:30.
+            Alice Nguyen overlaps with a team appointment from 09:00-10:00.
+          </div>
         </div>
 
         <div class="modal-actions">
+          <button
+            class="btn secondary"
+            onclick="mockSave('Availability checked')"
+          >
+            Check Availability
+          </button>
           <button class="btn" onclick="closeCreateModal()">Cancel</button>
-          <button class="btn primary" onclick="saveAppointment()">Save Appointment</button>
+          <button class="btn primary" onclick="saveAppointment()">
+            Save Appointment
+          </button>
         </div>
       </div>
     </div>
 
     <script>
       const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-      const times = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
+      const times = [
+        '08:00',
+        '09:00',
+        '10:00',
+        '11:00',
+        '12:00',
+        '13:00',
+        '14:00',
+        '15:00',
+        '16:00',
+        '17:00',
+      ];
       const suggestions = [
         { day: 'Tue', start: '15:00', end: '16:00', best: true },
         { day: 'Wed', start: '16:30', end: '17:30', best: false },
@@ -689,7 +973,10 @@
       }
 
       function selectSlot(day, time) {
-        if (!state.startSelection || (state.startSelection && state.endSelection)) {
+        if (
+          !state.startSelection ||
+          (state.startSelection && state.endSelection)
+        ) {
           state.startSelection = { day: day, time: time };
           state.endSelection = null;
         } else if (state.startSelection.day === day) {
@@ -723,7 +1010,10 @@
             return;
           }
 
-          if (day === state.startSelection.day && time === state.startSelection.time) {
+          if (
+            day === state.startSelection.day &&
+            time === state.startSelection.time
+          ) {
             slot.classList.add('selected');
           }
 
@@ -747,7 +1037,13 @@
         suggestions.forEach(function (slot) {
           const chip = document.createElement('button');
           chip.className = 'chip' + (slot.best ? ' best' : '');
-          chip.textContent = slot.day + ' ' + slot.start + ' - ' + slot.end + (slot.best ? ' Best' : '');
+          chip.textContent =
+            slot.day +
+            ' ' +
+            slot.start +
+            ' - ' +
+            slot.end +
+            (slot.best ? ' Best' : '');
           chip.addEventListener('click', function () {
             autofillFromSuggestion(slot);
           });
@@ -762,7 +1058,14 @@
         participants.forEach(function (person) {
           const row = document.createElement('div');
           row.className = 'participant';
-          row.innerHTML = '<span class="p-name">' + person.name + '</span><span class="badge ' + person.status + '">' + person.status.toUpperCase() + '</span>';
+          row.innerHTML =
+            '<span class="p-name">' +
+            person.name +
+            '</span><span class="badge ' +
+            person.status +
+            '">' +
+            person.status.toUpperCase() +
+            '</span>';
           list.appendChild(row);
         });
       }
@@ -775,15 +1078,28 @@
         }
 
         if (!state.endSelection) {
-          label.textContent = 'Selected: ' + state.startSelection.day + ' ' + state.startSelection.time;
+          label.textContent =
+            'Selected: ' +
+            state.startSelection.day +
+            ' ' +
+            state.startSelection.time;
         } else {
-          label.textContent = 'Selected range: ' + state.startSelection.day + ' ' + state.startSelection.time + ' - ' + state.endSelection.time;
+          label.textContent =
+            'Selected range: ' +
+            state.startSelection.day +
+            ' ' +
+            state.startSelection.time +
+            ' - ' +
+            state.endSelection.time;
         }
 
-        const hasConflict = state.startSelection.time === '09:00' || state.startSelection.time === '10:00';
-        document.getElementById('availability-summary').textContent = hasConflict
-          ? '3 participants unavailable in selected window.'
-          : '1 participant unavailable in selected window.';
+        const hasConflict =
+          state.startSelection.time === '09:00' ||
+          state.startSelection.time === '10:00';
+        document.getElementById('availability-summary').textContent =
+          hasConflict
+            ? '3 participants unavailable in selected window.'
+            : '1 participant unavailable in selected window.';
       }
 
       function setModalTime(day, start, end) {
@@ -797,27 +1113,22 @@
 
         document.getElementById('start-input').value = map[day] + 'T' + start;
 
-        const endHour = times.indexOf(end) >= 0 ? times[Math.min(times.indexOf(end) + 1, times.length - 1)] : '10:00';
+        const endHour =
+          times.indexOf(end) >= 0
+            ? times[Math.min(times.indexOf(end) + 1, times.length - 1)]
+            : '10:00';
         document.getElementById('end-input').value = map[day] + 'T' + endHour;
 
         const conflictBox = document.getElementById('modal-conflict');
         if (start === '09:00' || start === '10:00') {
           conflictBox.style.display = 'block';
-          conflictBox.textContent = 'Conflict detected: Bob has personal appointment at selected time.';
+          document.getElementById('modal-conflict-list').textContent =
+            'Bob Tran overlaps with a personal appointment from 09:30-10:30. Alice Nguyen overlaps with a team appointment from 09:00-10:00.';
         } else {
           conflictBox.style.display = 'block';
-          conflictBox.textContent = 'Low conflict risk. Suggested slot is likely accepted by all participants.';
+          document.getElementById('modal-conflict-list').textContent =
+            'No blocking conflict detected. Keep checking the availability panel before saving.';
         }
-      }
-
-      function autofillFromSuggestion(slot) {
-        state.startSelection = { day: slot.day, time: slot.start };
-        state.endSelection = null;
-
-        paintSelection();
-        updateRightPanel();
-        openCreateModal();
-        setModalTime(slot.day, slot.start, slot.end);
       }
 
       function openCreateModal() {
@@ -826,10 +1137,6 @@
 
       function closeCreateModal() {
         document.getElementById('create-modal').classList.remove('open');
-      }
-
-      function applySuggestion(startText, endText) {
-        alert('Apply suggested slot ' + startText + ' - ' + endText + ' (mockup only)');
       }
 
       function saveAppointment() {
@@ -842,7 +1149,8 @@
             x.classList.remove('active');
           });
           item.classList.add('active');
-          document.getElementById('active-team-title').textContent = item.dataset.team + ' - Team Calendar';
+          document.getElementById('active-team-title').textContent =
+            item.dataset.team + ' - Team Calendar';
         });
       });
 

@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Team Foundation mockup (Phase 8) theo hướng modern SaaS: xem nhanh team theo card, chuyển team nhanh, và thao tác Invite/Schedule/Open ngay trên card thay vì layout bảng CRUD.
+Team hub mockup for Phase 8. Keep the existing card-first layout, but align it to the real team APIs: create team, invite member, change role, remove member, leave team, and invitation lifecycle states.
 
 ---
 
-## Layout (ASCII Wireframe)
+## Screen: Team Hub
 
-### Team Hub (Card-based)
+### Layout
 
 ```
 +--------------------------------------------------------------------------------+
@@ -16,26 +16,35 @@ Team Foundation mockup (Phase 8) theo hướng modern SaaS: xem nhanh team theo 
 +-------------------+------------------------------------------------------------+
 | NAVIGATION        | TEAM HUB                                                   |
 |                   |                                                            |
-| Calendar          | [+ New Team] [My Teams] [Invitations] [Archived]          |
+| Calendar          | [+ New Team] [My Teams] [Invitations]                      |
 | Appointments      |                                                            |
 | Team          <   | +-----------------------+ +-----------------------+        |
 | Team Appointments | | Product Squad         | | Mobile Core           |        |
-| Notifications     | | 12 members            | | 8 members             |        |
-| Statistics        | | Next: Sprint Plan     | | Next: API Review      |        |
-| Profile           | | Tue 10:00             | | Tue 16:00             |        |
-|                   | | [Open] [Invite] [Sch] | | [Open] [Invite] [Sch] |        |
+| Notifications     | | OWNER / 12 members    | | ADMIN / 8 members     |        |
+| Statistics        | | Next: Sprint Planning | | Next: API Review      |        |
+| Profile           | | [Open] [Invite] [Sch] | | [Open] [Invite] [Sch] |        |
 |                   | +-----------------------+ +-----------------------+        |
 |                   | +-----------------------+ +-----------------------+        |
 |                   | | Design Guild          | | Growth Ops            |        |
-|                   | | 15 members            | | 6 members             |        |
-|                   | | Next: Critique        | | Next: Q2 Planning     |        |
-|                   | | Wed 14:00             | | Thu 09:30             |        |
-|                   | | [Open] [Invite] [Sch] | | [Open] [Invite] [Sch] |        |
+|                   | | MEMBER / 15 members   | | MEMBER / 6 members    |        |
+|                   | | Next: Design Critique | | Next: Q2 Planning     |        |
+|                   | | [Open] [Invite disabled] [Sch disabled]          |
 |                   | +-----------------------+ +-----------------------+        |
 |                   |                                                            |
-|                   | Selected Team: Product Squad                                |
-|                   | Role: OWNER    Active: 12    Pending invites: 2             |
-|                   | [View Members] [Leave Team]                                 |
+|                   | Selected team summary                                      |
+|                   | Role: OWNER   Active members: 12   Pending invites: 2      |
+|                   | [View Members] [Invite] [Leave Team]                       |
+|                   |                                                            |
+|                   | Members                                                    |
+|                   | - John Doe         OWNER   role immutable, remove disabled|
+|                   | - Avery Chen       ADMIN   change role/remove enabled     |
+|                   | - Jordan Lee       MEMBER  change role/remove enabled     |
+|                   |                                                            |
+|                   | Invitations                                                |
+|                   | - Mia Foster       PENDING                                 |
+|                   | - Noah Park        ACCEPTED                                |
+|                   | - Sara Kim         DECLINED                                |
+|                   | - Old Invite       EXPIRED                                 |
 +-------------------+------------------------------------------------------------+
 ```
 
@@ -43,24 +52,21 @@ Team Foundation mockup (Phase 8) theo hướng modern SaaS: xem nhanh team theo 
 
 ```
 +---------------------------------------------------------------+
-| [Create Team]                                            [X]  |
+| Create Team                                             [X]   |
 +---------------------------------------------------------------+
 | Team Name *                                                   |
 | [___________________________________________________________] |
 |                                                               |
-| Description                                                    |
+| Description                                                   |
 | [___________________________________________________________] |
 |                                                               |
-| Cover Color                                                    |
-| [Blue] [Green] [Orange] [Gray]                                |
-|                                                               |
-| Rule: Team name must be unique in owner scope (BR-38).        |
+| Note: team name must be unique in owner scope.               |
 |                                                               |
 |                     [Cancel]   [Create Team]                  |
 +---------------------------------------------------------------+
 ```
 
-### Invite Member Drawer
+### Invite Member Modal
 
 ```
 +----------------------------------------------------------------+
@@ -69,34 +75,45 @@ Team Foundation mockup (Phase 8) theo hướng modern SaaS: xem nhanh team theo 
 | Search by email/name                                            |
 | [___________________________________________________________]  |
 |                                                                |
-| Role   [MEMBER v]                                               |
-| Expiration (optional) [2026-06-30 23:59]                       |
+| Role   [ADMIN v]                                                |
+|        [MEMBER]                                                |
 |                                                                |
-| Permission note: only OWNER/ADMIN can invite (BR-40, BR-42).   |
+| Expiration (optional) [2026-06-30 23:59]                      |
+|                                                                |
+| Note: OWNER is not allowed as invitation target role.          |
+| Invitation status lifecycle: PENDING -> ACCEPTED / DECLINED / EXPIRED |
 |                                                                |
 |                     [Cancel]   [Send Invite]                   |
 +----------------------------------------------------------------+
 ```
 
+### Leave Team Modal
+
+```
++---------------------------------------------------------------+
+| Leave Team                                               [X]   |
++---------------------------------------------------------------+
+| Warning: owner must transfer ownership before leaving.       |
+| Removed members lose access immediately.                     |
+|                                                               |
+| [Cancel]                            [Leave Team]              |
++---------------------------------------------------------------+
+```
+
 ---
 
-## Components
+## User Flows
 
-- Team cards with key metadata: team name, member count, upcoming appointment
-- Per-card quick actions: Open, Invite, Schedule
-- Top segmented filters: My Teams, Invitations, Archived
-- Selected team summary strip with role and invite count
-- Create Team modal with name/description and branding color
-- Invite drawer/modal with role and expiration controls
-- Leave Team confirmation with ownership transfer warning (BR-43)
+- Create team -> new team becomes OWNER by default.
+- Invite member -> choose ADMIN or MEMBER only.
+- Manage members -> change role between ADMIN and MEMBER, or remove member.
+- Leave team -> allowed for active members, but owner must transfer ownership first.
 
 ---
 
-## User Actions
+## State Variations
 
-- Tạo team mới (FR-19, BR-37, BR-38)
-- Quét nhanh danh sách team qua card, không cần mở chi tiết dạng bảng
-- Mở team hoặc mở thẳng flow mời thành viên/lên lịch từ card
-- Mời thành viên với role hợp lệ (FR-20, BR-40)
-- Xem thông tin team đã chọn và chuyển team nhanh
-- Rời team theo ràng buộc owner transfer (FR-21, BR-39, BR-43, BR-44)
+- Empty state: no teams in the list, show a create-team prompt.
+- Loading state: team list and member list show skeleton rows while data is fetched.
+- Invitation states: PENDING, ACCEPTED, DECLINED, EXPIRED badges.
+- Permission state: hide or disable invite / change role / remove controls when the user lacks access.
