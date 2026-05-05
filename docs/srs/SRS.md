@@ -129,6 +129,14 @@ Users can review appointments through multiple calendar presentations. Priority 
 | FR-13 | The system shall display personal appointments in Day, Week, and Month calendar views.           | UC-9      | BR-13          |
 | FR-14 | The system shall provide an Agenda view that lists upcoming appointments in chronological order. | UC-10     | BR-13          |
 
+### Unified Calendar View
+
+The system shall provide a read-only unified calendar view that combines personal and team appointments for the authenticated user within a selected time range.
+
+| ID    | Requirement                                                                                                                                  | Use Cases | Business Rules                    |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------- | --------------------------------- |
+| FR-35 | The system shall provide an authenticated unified calendar view that aggregates personal and team appointments within a selected time range. | UC-35     | BR-68, BR-69, BR-70, BR-71, BR-72 |
+
 ## Reminders and Notifications
 
 ### Description

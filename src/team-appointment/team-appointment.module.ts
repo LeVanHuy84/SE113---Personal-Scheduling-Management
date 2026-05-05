@@ -8,5 +8,6 @@ import { TeamAppointmentService } from './team-appointment.service';
   imports: [PrismaModule],
   controllers: [TeamAppointmentController],
   providers: [TeamAppointmentRepository, TeamAppointmentService],
+  exports: [TeamAppointmentRepository],
 })
 export class TeamAppointmentModule {}
