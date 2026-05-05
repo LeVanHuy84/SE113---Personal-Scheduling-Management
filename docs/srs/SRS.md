@@ -159,9 +159,10 @@ Users can view analytics about their scheduling habits. Priority = Medium.
 
 ### Functional Requirements
 
-| ID    | Requirement                                                                                                                                                           | Use Cases | Business Rules                    |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | --------------------------------- |
-| FR-18 | The system shall provide an authenticated statistics dashboard that calculates results for a selected time range and shows completion rate and productive time slots. | UC-18     | BR-15, BR-16, BR-17, BR-18, BR-34 |
+| ID         | Requirement                                                                                                                                                           | Use Cases | Business Rules                    |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | --------------------------------- |
+| FR-18      | The system shall provide an authenticated statistics dashboard that calculates results for a selected time range and shows completion rate and productive time slots. | UC-18     | BR-15, BR-16, BR-17, BR-18, BR-34 |
+| FR-STAT-02 | The system shall return time-series trend data for selected time range, grouped by day or week, showing total and completed appointments per bucket.                  | UC-18     | BR-15, BR-16, BR-17               |
 
 ## Team Management and Collaboration
 

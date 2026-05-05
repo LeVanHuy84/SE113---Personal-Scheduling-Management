@@ -1,23 +1,24 @@
-# API Contract: Statistics
+# API Contract: Personal Statistics
 
 ## Feature
 
-- Name: statistics
+- Name: statistics (personal)
 - Primary module: Statistics
 - Related entities: Appointment, UserMonthlyStat
+- Scope: **PERSONAL ONLY** — no team statistics in this release
 
 ## Related Use-cases
 
 - UC-18: View productivity statistics
 - UC-19: Export appointment data
 
-## Endpoint 1: Get Productivity Statistics
+## Endpoint 1: Get Personal Productivity Statistics
 
 ### Endpoint
 
 - Method: GET
-- URL: /statistics
-- Description: Return productivity metrics for authenticated user in selected time range.
+- URL: /statistics/me
+- Description: Return personal productivity metrics for authenticated user in selected time range.
 
 ### Request DTO
 
