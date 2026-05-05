@@ -1,15 +1,22 @@
 import { Transform } from 'class-transformer';
 import {
-  ArrayMinSize,
   IsArray,
   IsDateString,
   IsNotEmpty,
+  IsEnum,
   IsOptional,
   IsString,
+  ArrayUnique,
   IsUUID,
   Length,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
+
+export enum ParticipantSelectionMode {
+  ALL = 'ALL',
+  CUSTOM = 'CUSTOM',
+}
 
 export class CreateTeamAppointmentRequestDto {
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
@@ -34,8 +41,18 @@ export class CreateTeamAppointmentRequestDto {
   @IsDateString()
   endAt: string;
 
+  @IsOptional()
+  @IsEnum(ParticipantSelectionMode, {
+    message: 'participantSelectionMode must be one of: ALL, CUSTOM',
+  })
+  participantSelectionMode?: ParticipantSelectionMode =
+    ParticipantSelectionMode.ALL;
+
+  @ValidateIf(
+    (dto) => dto.participantSelectionMode === ParticipantSelectionMode.CUSTOM,
+  )
   @IsArray()
-  @ArrayMinSize(1)
+  @ArrayUnique()
   @IsUUID('4', { each: true })
-  participantUserIds: string[];
+  participantUserIds?: string[];
 }

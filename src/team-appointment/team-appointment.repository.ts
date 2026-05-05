@@ -23,6 +23,11 @@ type TeamAppointmentRecord = {
   updatedAt: Date;
 };
 
+type TeamMemberProfileRecord = {
+  userId: string;
+  displayName: string;
+};
+
 @Injectable()
 export class TeamAppointmentRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -68,6 +73,62 @@ export class TeamAppointmentRepository {
     });
 
     return members.map((member) => member.userId);
+  }
+
+  async findActiveMemberProfilesByTeamId(
+    teamId: string,
+  ): Promise<TeamMemberProfileRecord[]> {
+    const members = await this.prisma.teamMember.findMany({
+      where: {
+        teamId,
+        status: MembershipStatus.ACTIVE,
+      },
+      select: {
+        userId: true,
+        user: {
+          select: {
+            displayName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return members.map((member) => ({
+      userId: member.userId,
+      displayName: member.user.displayName ?? member.user.email,
+    }));
+  }
+
+  async findActiveMemberProfilesByIds(input: {
+    teamId: string;
+    userIds: string[];
+  }): Promise<TeamMemberProfileRecord[]> {
+    if (!input.userIds.length) {
+      return [];
+    }
+
+    const members = await this.prisma.teamMember.findMany({
+      where: {
+        teamId: input.teamId,
+        status: MembershipStatus.ACTIVE,
+        userId: { in: input.userIds },
+      },
+      select: {
+        userId: true,
+        user: {
+          select: {
+            displayName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return members.map((member) => ({
+      userId: member.userId,
+      displayName: member.user.displayName ?? member.user.email,
+    }));
   }
 
   async createTeamAppointment(input: {
@@ -160,37 +221,62 @@ export class TeamAppointmentRepository {
     startAt: Date;
     endAt: Date;
     status: AppointmentStatus;
+    participantUserIds: string[];
   }): Promise<TeamAppointmentRecord> {
-    return this.prisma.teamAppointment.update({
-      where: { id: input.appointmentId },
-      data: {
-        title: input.title,
-        description: input.description,
-        location: input.location,
-        startAt: input.startAt,
-        endAt: input.endAt,
-        status: input.status,
-      },
-      select: {
-        id: true,
-        teamId: true,
-        organizerId: true,
-        title: true,
-        description: true,
-        location: true,
-        startAt: true,
-        endAt: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        participants: {
-          select: {
-            userId: true,
-            participationType: true,
-          },
-          orderBy: { userId: 'asc' },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.teamAppointment.update({
+        where: { id: input.appointmentId },
+        data: {
+          title: input.title,
+          description: input.description,
+          location: input.location,
+          startAt: input.startAt,
+          endAt: input.endAt,
+          status: input.status,
         },
-      },
+      });
+
+      await tx.appointmentParticipant.deleteMany({
+        where: { teamAppointmentId: input.appointmentId },
+      });
+
+      await tx.appointmentParticipant.createMany({
+        data: input.participantUserIds.map((userId) => ({
+          teamAppointmentId: input.appointmentId,
+          userId,
+          participationType: ParticipationType.REQUIRED,
+        })),
+      });
+
+      const updated = await tx.teamAppointment.findUnique({
+        where: { id: input.appointmentId },
+        select: {
+          id: true,
+          teamId: true,
+          organizerId: true,
+          title: true,
+          description: true,
+          location: true,
+          startAt: true,
+          endAt: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          participants: {
+            select: {
+              userId: true,
+              participationType: true,
+            },
+            orderBy: { userId: 'asc' },
+          },
+        },
+      });
+
+      if (!updated) {
+        throw new Error('Failed to load updated team appointment');
+      }
+
+      return updated;
     });
   }
 

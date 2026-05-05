@@ -17,9 +17,17 @@
 ## Common Rules
 
 - All endpoints require valid JWT.
-- Caller must be active member of the target team.
+- Caller must be an active member of the target team.
 - Required participants must be active members of the target team.
+- The organizer is derived from the authenticated caller and is always stored as a REQUIRED participant.
+- Team appointments are non-recurring.
+- Team appointment startAt must be earlier than endAt.
+- participantUserIds must not contain duplicates.
 - Conflict checking uses overlap rule: (existingStart < requestedEnd) AND (existingEnd > requestedStart).
+- Time overlap conflicts are returned in successful responses and do not use HTTP 409.
+- Availability checks do not create or update appointments.
+- On PATCH, participantUserIds replaces the participant set; missing participants are removed and new participants are added.
+- Create defaults to ALL active team members; CUSTOM selection is used only when participantSelectionMode = CUSTOM.
 
 ## Endpoint 1: Create Team Appointment
 
@@ -27,7 +35,7 @@
 
 - Method: POST
 - URL: /teams/:teamId/appointments
-- Description: Create a team appointment with required participants.
+- Description: Create a team appointment and return detected participant conflicts, if any.
 
 ### Request JSON
 
@@ -38,6 +46,20 @@
   "location": "Meeting room A",
   "startAt": "2026-05-10T09:00:00.000Z",
   "endAt": "2026-05-10T10:00:00.000Z",
+  "participantSelectionMode": "ALL"
+}
+```
+
+### Custom Selection Request JSON
+
+```json
+{
+  "title": "Sprint planning",
+  "description": "Backlog grooming and estimation",
+  "location": "Meeting room A",
+  "startAt": "2026-05-10T09:00:00.000Z",
+  "endAt": "2026-05-10T10:00:00.000Z",
+  "participantSelectionMode": "CUSTOM",
   "participantUserIds": [
     "0f9f8b58-c595-4df8-99f6-df46e5f19f4b",
     "5d46f6d3-9713-4793-9de0-0c46b32fc58a"
@@ -60,12 +82,20 @@
   "status": "SCHEDULED",
   "participants": [
     {
-      "userId": "0f9f8b58-c595-4df8-99f6-df46e5f19f4b"
+      "userId": "3c84f8d8-a4bc-4e87-9f57-b8b5dc5d4f64",
+      "participationType": "REQUIRED"
     },
     {
-      "userId": "5d46f6d3-9713-4793-9de0-0c46b32fc58a"
+      "userId": "0f9f8b58-c595-4df8-99f6-df46e5f19f4b",
+      "participationType": "REQUIRED"
+    },
+    {
+      "userId": "5d46f6d3-9713-4793-9de0-0c46b32fc58a",
+      "participationType": "REQUIRED"
     }
   ],
+  "hasConflict": false,
+  "conflicts": [],
   "createdAt": "2026-04-26T08:00:00.000Z",
   "updatedAt": "2026-04-26T08:00:00.000Z"
 }
@@ -73,10 +103,11 @@
 
 ### Error Cases
 
+- 400 Bad Request: invalid time range, duplicate participantUserIds, missing required payload fields, or CUSTOM selection without participantUserIds.
 - 401 Unauthorized: missing or invalid JWT.
-- 403 Forbidden: caller is not active member or lacks role permission.
+- 403 Forbidden: caller is not an active member or lacks role permission.
 - 404 Not Found: team not found.
-- 409 Conflict: one or more required participants has time conflicts.
+- 409 Conflict: invalid appointment state or a rule violation that is not a time overlap conflict.
 
 ## Endpoint 2: List Team Appointments
 
@@ -112,7 +143,7 @@
       "startAt": "2026-05-10T09:00:00.000Z",
       "endAt": "2026-05-10T10:00:00.000Z",
       "status": "SCHEDULED",
-      "participantCount": 2
+      "participantCount": 3
     }
   ],
   "page": 1,
@@ -123,10 +154,10 @@
 
 ### Error Cases
 
+- 400 Bad Request: invalid time range or query parameters.
 - 401 Unauthorized: missing or invalid JWT.
-- 403 Forbidden: caller is not active member.
+- 403 Forbidden: caller is not an active member.
 - 404 Not Found: team not found.
-- 409 Conflict: requested range conflicts with query constraints or invalid time-window policy.
 
 ## Endpoint 3: Get Team Appointment Detail
 
@@ -162,10 +193,16 @@
   "status": "SCHEDULED",
   "participants": [
     {
-      "userId": "0f9f8b58-c595-4df8-99f6-df46e5f19f4b"
+      "userId": "3c84f8d8-a4bc-4e87-9f57-b8b5dc5d4f64",
+      "participationType": "REQUIRED"
     },
     {
-      "userId": "5d46f6d3-9713-4793-9de0-0c46b32fc58a"
+      "userId": "0f9f8b58-c595-4df8-99f6-df46e5f19f4b",
+      "participationType": "REQUIRED"
+    },
+    {
+      "userId": "5d46f6d3-9713-4793-9de0-0c46b32fc58a",
+      "participationType": "REQUIRED"
     }
   ],
   "createdAt": "2026-04-26T08:00:00.000Z",
@@ -176,7 +213,7 @@
 ### Error Cases
 
 - 401 Unauthorized: missing or invalid JWT.
-- 403 Forbidden: caller is not active member.
+- 403 Forbidden: caller is not an active member.
 - 404 Not Found: team or appointment not found.
 - 409 Conflict: appointment state is inconsistent with participant constraints.
 
@@ -186,7 +223,7 @@
 
 - Method: PATCH
 - URL: /teams/:teamId/appointments/:id
-- Description: Update mutable appointment fields and rerun permission/conflict checks.
+- Description: Update mutable appointment fields, replace the participant list, and return detected participant conflicts, if any.
 
 ### Request JSON
 
@@ -197,7 +234,11 @@
   "location": "Meeting room B",
   "startAt": "2026-05-10T09:30:00.000Z",
   "endAt": "2026-05-10T10:30:00.000Z",
-  "status": "SCHEDULED"
+  "status": "SCHEDULED",
+  "participantUserIds": [
+    "0f9f8b58-c595-4df8-99f6-df46e5f19f4b",
+    "5d46f6d3-9713-4793-9de0-0c46b32fc58a"
+  ]
 }
 ```
 
@@ -214,16 +255,41 @@
   "startAt": "2026-05-10T09:30:00.000Z",
   "endAt": "2026-05-10T10:30:00.000Z",
   "status": "SCHEDULED",
+  "participants": [
+    {
+      "userId": "3c84f8d8-a4bc-4e87-9f57-b8b5dc5d4f64",
+      "participationType": "REQUIRED"
+    },
+    {
+      "userId": "0f9f8b58-c595-4df8-99f6-df46e5f19f4b",
+      "participationType": "REQUIRED"
+    },
+    {
+      "userId": "5d46f6d3-9713-4793-9de0-0c46b32fc58a",
+      "participationType": "REQUIRED"
+    }
+  ],
+  "hasConflict": true,
+  "conflicts": [
+    {
+      "userId": "0f9f8b58-c595-4df8-99f6-df46e5f19f4b",
+      "displayName": "Avery Chen",
+      "conflictWith": "PERSONAL_APPOINTMENT",
+      "startAt": "2026-05-10T09:15:00.000Z",
+      "endAt": "2026-05-10T10:15:00.000Z"
+    }
+  ],
   "updatedAt": "2026-04-26T08:15:00.000Z"
 }
 ```
 
 ### Error Cases
 
+- 400 Bad Request: invalid time range, duplicate participantUserIds, or missing required payload fields.
 - 401 Unauthorized: missing or invalid JWT.
 - 403 Forbidden: caller lacks OWNER/ADMIN/organizer permissions.
 - 404 Not Found: team or appointment not found.
-- 409 Conflict: updated time conflicts with required participant availability.
+- 409 Conflict: invalid appointment state or rule violation that is not a time overlap conflict.
 
 ## Endpoint 5: Delete Team Appointment
 
@@ -258,23 +324,26 @@
 - 401 Unauthorized: missing or invalid JWT.
 - 403 Forbidden: caller lacks OWNER/ADMIN/organizer permissions.
 - 404 Not Found: team or appointment not found.
-- 409 Conflict: deletion violates appointment state or scope constraints.
+- 409 Conflict: invalid appointment state or rule violation that is not a time overlap conflict.
 
-## Endpoint 6: Add Participants
+## Endpoint 6: Check Team Availability
 
 ### Endpoint
 
 - Method: POST
-- URL: /teams/:teamId/appointments/:id/participants
-- Description: Add required participants to an existing team appointment.
+- URL: /teams/:teamId/appointments/check-conflicts
+- Description: Check participant availability for a proposed time range without creating or updating a team appointment.
 
 ### Request JSON
 
 ```json
 {
+  "startAt": "2026-05-10T09:00:00.000Z",
+  "endAt": "2026-05-10T10:00:00.000Z",
   "participantUserIds": [
-    "2cd0eb47-87f1-4af9-a87c-1e5a608f53d8",
-    "75dfe1ba-9550-4e96-8199-ea2a3cc38f2f"
+    "0f9f8b58-c595-4df8-99f6-df46e5f19f4b",
+    "5d46f6d3-9713-4793-9de0-0c46b32fc58a",
+    "2cd0eb47-87f1-4af9-a87c-1e5a608f53d8"
   ]
 }
 ```
@@ -283,19 +352,44 @@
 
 ```json
 {
-  "appointmentId": "e4e2fc72-a55a-4ca8-b4ce-f3f4d4fe01c6",
-  "participants": [
+  "teamId": "f9f4a8ef-0e97-4fda-9f47-53f7587346e8",
+  "startAt": "2026-05-10T09:00:00.000Z",
+  "endAt": "2026-05-10T10:00:00.000Z",
+  "hasConflict": true,
+  "availableParticipants": [
     {
-      "userId": "0f9f8b58-c595-4df8-99f6-df46e5f19f4b"
+      "userId": "5d46f6d3-9713-4793-9de0-0c46b32fc58a",
+      "displayName": "Jordan Lee"
+    }
+  ],
+  "busyParticipants": [
+    {
+      "userId": "0f9f8b58-c595-4df8-99f6-df46e5f19f4b",
+      "displayName": "Avery Chen"
     },
     {
-      "userId": "5d46f6d3-9713-4793-9de0-0c46b32fc58a"
+      "userId": "2cd0eb47-87f1-4af9-a87c-1e5a608f53d8",
+      "displayName": "Morgan Patel"
+    }
+  ],
+  "conflicts": [
+    {
+      "userId": "0f9f8b58-c595-4df8-99f6-df46e5f19f4b",
+      "displayName": "Avery Chen",
+      "conflictWith": "PERSONAL_APPOINTMENT",
+      "startAt": "2026-05-10T09:15:00.000Z",
+      "endAt": "2026-05-10T10:15:00.000Z",
+      "summary": "Personal appointment overlaps the requested team time."
+    }
+  ],
+  "suggestedSlots": [
+    {
+      "startAt": "2026-05-10T11:00:00.000Z",
+      "endAt": "2026-05-10T12:00:00.000Z"
     },
     {
-      "userId": "2cd0eb47-87f1-4af9-a87c-1e5a608f53d8"
-    },
-    {
-      "userId": "75dfe1ba-9550-4e96-8199-ea2a3cc38f2f"
+      "startAt": "2026-05-10T13:30:00.000Z",
+      "endAt": "2026-05-10T14:30:00.000Z"
     }
   ]
 }
@@ -303,47 +397,10 @@
 
 ### Error Cases
 
+- 400 Bad Request: missing or invalid start time, end time, or participant list.
 - 401 Unauthorized: missing or invalid JWT.
-- 403 Forbidden: caller lacks OWNER/ADMIN/organizer permissions.
-- 404 Not Found: team, appointment, or participant user not found.
-- 409 Conflict: one or more added participants has scheduling conflicts.
-
-## Endpoint 7: Remove Participant
-
-### Endpoint
-
-- Method: DELETE
-- URL: /teams/:teamId/appointments/:id/participants/:userId
-- Description: Remove one participant from a team appointment.
-
-### Request JSON
-
-```json
-{
-  "params": {
-    "teamId": "f9f4a8ef-0e97-4fda-9f47-53f7587346e8",
-    "id": "e4e2fc72-a55a-4ca8-b4ce-f3f4d4fe01c6",
-    "userId": "2cd0eb47-87f1-4af9-a87c-1e5a608f53d8"
-  }
-}
-```
-
-### Response JSON (200)
-
-```json
-{
-  "appointmentId": "e4e2fc72-a55a-4ca8-b4ce-f3f4d4fe01c6",
-  "removedUserId": "2cd0eb47-87f1-4af9-a87c-1e5a608f53d8",
-  "remainingParticipantCount": 3
-}
-```
-
-### Error Cases
-
-- 401 Unauthorized: missing or invalid JWT.
-- 403 Forbidden: caller lacks OWNER/ADMIN/organizer permissions.
-- 404 Not Found: team, appointment, or participant link not found.
-- 409 Conflict: removal violates appointment participant constraints.
+- 403 Forbidden: caller is not an active member or lacks role permission.
+- 404 Not Found: team not found.
 
 ## Architecture Notes
 
@@ -353,15 +410,17 @@
 - TeamAppointment is team-scoped collaborative scheduling data with explicit organizer and participant links.
 - TeamAppointment requires role and active-membership checks in addition to authentication.
 
+### Dedicated Availability Check
+
+- Availability checks use the same overlap predicate and participant scope as team appointment scheduling.
+- Availability checks return participant availability, participant conflicts, and suggested common free slots without persisting changes.
+
 ### High-level Conflict Detection Strategy
 
-- Validate time range first.
-- Expand required participant set.
-- For each required participant, check overlap against:
-  - personal appointments;
-  - other team appointments via AppointmentParticipant join.
-- Reject write operation when any required participant conflicts.
-- Return participant-focused conflict details so clients can adjust time or participants.
+- Validate the requested time range.
+- Check each required participant against personal appointments and other team appointments.
+- Return detected conflicts with participant and overlap details.
+- Suggest common free slots only from the dedicated availability check endpoint.
 
 ### Reuse of Existing Appointment Logic
 
@@ -372,6 +431,6 @@
 
 ## Self Review
 
-- Covers all required endpoints in scope.
-- Each endpoint includes request JSON, response JSON, and Unauthorized/Forbidden/Not Found/Conflict errors.
-- Aligns with FR-22 to FR-29 and BR-45 to BR-56 preparation intent.
+- Covers the required six endpoints only: create, list, detail, update, delete, and availability check.
+- Create and update return conflict data only; suggested slots are limited to availability checks.
+- Aligns with the simplified participant model, organizer-as-required-participant rule, and successful-response conflict handling.

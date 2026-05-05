@@ -20,7 +20,7 @@ No special typographical conventions are used in this SRS.
 
 ## Project Scope and Product Features
 
-The Scheduling Management System is a web application for personal appointment management and small-team collaboration. It supports account management, appointment lifecycle operations, recurring appointments, conflict detection, reminders, analytics, CSV export, team creation, shared calendars, team appointments, multi-user coordination, and optimal time-slot suggestions.
+The Scheduling Management System is a web application for personal appointment management and small-team collaboration. It supports account management, appointment lifecycle operations, recurring appointments, conflict detection, reminders, analytics, CSV export, team creation, shared calendars, team appointments, multi-user coordination, and availability checks with suggested common free slots.
 
 ## References
 
@@ -36,11 +36,11 @@ The Scheduling Management System is a new web-based application that provides a 
 
 ## User Classes and Characteristics
 
-| User Class | Characteristics |
-| --- | --- |
-| End User | An End User manages personal appointments and may also act as a Team Owner, Team Admin, Organizer, or Team Member in collaborative workflows. |
-| Scheduler Service | An automated background service that triggers reminder notifications and related time-based events. |
-| System Administrator | A technical user responsible for deployment, monitoring, and maintenance of the system. |
+| User Class           | Characteristics                                                                                                                               |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| End User             | An End User manages personal appointments and may also act as a Team Owner, Team Admin, Organizer, or Team Member in collaborative workflows. |
+| Scheduler Service    | An automated background service that triggers reminder notifications and related time-based events.                                           |
+| System Administrator | A technical user responsible for deployment, monitoring, and maintenance of the system.                                                       |
 
 ## Operating Environment
 
@@ -64,7 +64,7 @@ CO-3: The system must be designed with a responsive UI to support desktop and mo
 
 CO-4: Core appointment operations must respond within 2 seconds under normal load conditions.
 
-CO-5: Team calendar and participant availability checks must enforce role-based access control.
+CO-5: Team appointment create, update, delete, and availability checks must enforce role-based access control.
 
 ## Assumptions and Dependencies
 
@@ -76,11 +76,12 @@ AS-3: The PostgreSQL database will handle concurrent scheduling operations effic
 
 AS-4: The JWT authentication mechanism will securely manage user sessions.
 
-AS-5: Team members maintain current availability information so the system can produce accurate conflict checks and time-slot suggestions.
+AS-5: Team members maintain current availability information so the system can produce accurate conflict checks and suggested free slots.
 
 DE-1: The system depends on a reliable server hosting and deployment environment.
 
 # System Features
+
 ## User Account Management
 
 ### Description
@@ -89,13 +90,13 @@ Users can register, authenticate, sign out, and manage their profile securely. P
 
 ### Functional Requirements
 
-| ID | Requirement | Use Cases | Business Rules |
-| --- | --- | --- | --- |
-| FR-01 | The system shall allow a user to register an account using a unique email address and shall store the password only after secure hashing. | UC-1 | BR-1, BR-32 |
-| FR-02 | The system shall allow a registered user to log in with email and password, issue a JWT session token, and log the authentication attempt. | UC-2 | BR-2, BR-3, BR-33 |
-| FR-03 | The system shall allow an authenticated user to log out and invalidate the active session token. | UC-3 | BR-4 |
-| FR-04 | The system shall allow a user to request a password reset and set a new password through a verified reset flow. | UC-4 | BR-32 |
-| FR-05 | The system shall allow a logged-in user to view and update non-sensitive profile information. | UC-5 | BR-5 |
+| ID    | Requirement                                                                                                                                | Use Cases | Business Rules    |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ----------------- |
+| FR-01 | The system shall allow a user to register an account using a unique email address and shall store the password only after secure hashing.  | UC-1      | BR-1, BR-32       |
+| FR-02 | The system shall allow a registered user to log in with email and password, issue a JWT session token, and log the authentication attempt. | UC-2      | BR-2, BR-3, BR-33 |
+| FR-03 | The system shall allow an authenticated user to log out and invalidate the active session token.                                           | UC-3      | BR-4              |
+| FR-04 | The system shall allow a user to request a password reset and set a new password through a verified reset flow.                            | UC-4      | BR-32             |
+| FR-05 | The system shall allow a logged-in user to view and update non-sensitive profile information.                                              | UC-5      | BR-5              |
 
 ## Appointment Management
 
@@ -105,15 +106,15 @@ Users can create, modify, delete, organize, and export personal appointments. Pr
 
 ### Functional Requirements
 
-| ID | Requirement | Use Cases | Business Rules |
-| --- | --- | --- | --- |
-| FR-06 | The system shall allow a user to create a personal appointment with title, start time, end time, description, location, tags, and optional recurrence. | UC-6 | BR-5, BR-6, BR-7, BR-8, BR-9, BR-10 |
-| FR-07 | The system shall allow a user to update an appointment they own and, for recurring appointments, choose whether to apply the change to one instance or the entire series. | UC-7 | BR-5, BR-12 |
-| FR-08 | The system shall allow a user to delete an appointment they own and, for recurring appointments, choose whether to delete one instance or the entire series. | UC-8 | BR-5, BR-12 |
-| FR-09 | The system shall allow a user to mark an appointment as completed or cancelled and to reopen a completed appointment when permitted. | UC-12 | BR-14 |
-| FR-10 | The system shall allow a user to search and filter appointments by keyword, date range, tag, and status. | UC-13 | BR-27 |
-| FR-11 | The system shall allow a user to create, assign, and manage appointment tags. | UC-14 | BR-19 |
-| FR-12 | The system shall allow a user to export appointment data in CSV format and preserve the active filters in the exported result. | UC-19 | BR-28, BR-29 |
+| ID    | Requirement                                                                                                                                                               | Use Cases | Business Rules                      |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ----------------------------------- |
+| FR-06 | The system shall allow a user to create a personal appointment with title, start time, end time, description, location, tags, and optional recurrence.                    | UC-6      | BR-5, BR-6, BR-7, BR-8, BR-9, BR-10 |
+| FR-07 | The system shall allow a user to update an appointment they own and, for recurring appointments, choose whether to apply the change to one instance or the entire series. | UC-7      | BR-5, BR-12                         |
+| FR-08 | The system shall allow a user to delete an appointment they own and, for recurring appointments, choose whether to delete one instance or the entire series.              | UC-8      | BR-5, BR-12                         |
+| FR-09 | The system shall allow a user to mark an appointment as completed or cancelled and to reopen a completed appointment when permitted.                                      | UC-12     | BR-14                               |
+| FR-10 | The system shall allow a user to search and filter appointments by keyword, date range, tag, and status.                                                                  | UC-13     | BR-27                               |
+| FR-11 | The system shall allow a user to create, assign, and manage appointment tags.                                                                                             | UC-14     | BR-19                               |
+| FR-12 | The system shall allow a user to export appointment data in CSV format and preserve the active filters in the exported result.                                            | UC-19     | BR-28, BR-29                        |
 
 ## Calendar and Views
 
@@ -123,10 +124,10 @@ Users can review appointments through multiple calendar presentations. Priority 
 
 ### Functional Requirements
 
-| ID | Requirement | Use Cases | Business Rules |
-| --- | --- | --- | --- |
-| FR-13 | The system shall display personal appointments in Day, Week, and Month calendar views. | UC-9 | BR-13 |
-| FR-14 | The system shall provide an Agenda view that lists upcoming appointments in chronological order. | UC-10 | BR-13 |
+| ID    | Requirement                                                                                      | Use Cases | Business Rules |
+| ----- | ------------------------------------------------------------------------------------------------ | --------- | -------------- |
+| FR-13 | The system shall display personal appointments in Day, Week, and Month calendar views.           | UC-9      | BR-13          |
+| FR-14 | The system shall provide an Agenda view that lists upcoming appointments in chronological order. | UC-10     | BR-13          |
 
 ## Reminders and Notifications
 
@@ -136,11 +137,11 @@ The system sends appointment reminders and tracks reminder activity. Priority = 
 
 ### Functional Requirements
 
-| ID | Requirement | Use Cases | Business Rules |
-| --- | --- | --- | --- |
-| FR-15 | The system shall allow a user to configure one or more reminders for an appointment, with each reminder scheduled before the appointment start time. | UC-15 | BR-21, BR-22 |
-| FR-16 | The Scheduler Service shall trigger reminder notifications at the scheduled time and record the delivered notification. | UC-20 | BR-23, BR-25 |
-| FR-17 | The system shall allow a user to snooze a reminder and to view notification history. | UC-16, UC-17 | BR-24, BR-26 |
+| ID    | Requirement                                                                                                                                          | Use Cases    | Business Rules |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | -------------- |
+| FR-15 | The system shall allow a user to configure one or more reminders for an appointment, with each reminder scheduled before the appointment start time. | UC-15        | BR-21, BR-22   |
+| FR-16 | The Scheduler Service shall trigger reminder notifications at the scheduled time and record the delivered notification.                              | UC-20        | BR-23, BR-25   |
+| FR-17 | The system shall allow a user to snooze a reminder and to view notification history.                                                                 | UC-16, UC-17 | BR-24, BR-26   |
 
 ## Productivity Statistics
 
@@ -150,9 +151,9 @@ Users can view analytics about their scheduling habits. Priority = Medium.
 
 ### Functional Requirements
 
-| ID | Requirement | Use Cases | Business Rules |
-| --- | --- | --- | --- |
-| FR-18 | The system shall provide an authenticated statistics dashboard that calculates results for a selected time range and shows completion rate and productive time slots. | UC-18 | BR-15, BR-16, BR-17, BR-18, BR-34 |
+| ID    | Requirement                                                                                                                                                           | Use Cases | Business Rules                    |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | --------------------------------- |
+| FR-18 | The system shall provide an authenticated statistics dashboard that calculates results for a selected time range and shows completion rate and productive time slots. | UC-18     | BR-15, BR-16, BR-17, BR-18, BR-34 |
 
 ## Team Management and Collaboration
 
@@ -162,19 +163,24 @@ Users can create teams, manage membership, share calendars, coordinate team appo
 
 ### Functional Requirements
 
-| ID | Requirement | Use Cases | Business Rules |
-| --- | --- | --- | --- |
-| FR-19 | The system shall allow an authenticated user to create a team and become the Team Owner by default. | UC-21 | BR-37, BR-38, BR-39, BR-42 |
-| FR-20 | The system shall allow a Team Owner or Team Admin to invite members to a team. | UC-22 | BR-40, BR-41, BR-42 |
-| FR-21 | The system shall allow an active team member to leave a team, while enforcing ownership-transfer constraints when the member is the Team Owner. | UC-24 | BR-39, BR-43, BR-44 |
-| FR-22 | The system shall allow an authorized team role to create a team appointment linked to a team, organizer, and required participants. | UC-25 | BR-45, BR-46, BR-51, BR-52 |
-| FR-23 | The system shall allow an authorized team role to update a team appointment and shall recheck permissions and conflicts after every edit. | UC-26 | BR-47, BR-50, BR-51, BR-52, BR-53, BR-56 |
-| FR-24 | The system shall allow an authorized team role to delete a team appointment and apply the requested delete scope for recurring appointments. | UC-27 | BR-48, BR-50, BR-56 |
-| FR-25 | The system shall display a shared team calendar only to active members of the selected team. | UC-28 | BR-49, BR-55 |
-| FR-26 | The system shall display team member lists and visible role labels to active members of the team. | UC-29 | BR-41, BR-42, BR-44 |
-| FR-27 | The system shall validate the availability of all required participants by checking their personal and team schedules before saving a team appointment. | UC-30 | BR-51, BR-52, BR-53 |
-| FR-28 | The system shall block saving a team appointment when a required participant has a conflict and shall return conflict details to the scheduling workflow. | UC-30 | BR-51, BR-52, BR-53 |
-| FR-29 | The system shall suggest optimal time slots based on the common free time of required participants when a requested team appointment time is unavailable. | UC-25, UC-26, UC-30 | BR-54 |
+| ID    | Requirement                                                                                                                                                                                             | Use Cases | Business Rules                                         |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------ |
+| FR-19 | The system shall allow an authenticated user to create a team and become the Team Owner by default.                                                                                                     | UC-21     | BR-37, BR-38, BR-39, BR-42                             |
+| FR-20 | The system shall allow a Team Owner or Team Admin to invite members to a team with target role limited to Team Admin or Team Member.                                                                    | UC-22     | BR-40, BR-41, BR-42, BR-57                             |
+| FR-21 | The system shall allow an active team member to leave a team, while enforcing ownership-transfer constraints when the member is the Team Owner.                                                         | UC-24     | BR-39, BR-43, BR-44                                    |
+| FR-22 | The system shall allow an authorized team role to create a non-recurring team appointment linked to a team, organizer, and required participants.                                                       | UC-25     | BR-45, BR-46, BR-47, BR-48, BR-49, BR-53, BR-52        |
+| FR-23 | The system shall allow an authorized team role to update a team appointment, including the participant list, and shall recheck permissions and conflicts after every edit.                              | UC-26     | BR-45, BR-46, BR-47, BR-48, BR-50, BR-52, BR-53, BR-56 |
+| FR-24 | The system shall allow an authorized team role to delete a team appointment.                                                                                                                            | UC-27     | BR-51, BR-56                                           |
+| FR-25 | The system shall display a shared team calendar only to active members of the selected team.                                                                                                            | UC-28     | BR-52, BR-55                                           |
+| FR-26 | The system shall display team appointment details with participants only to active members of the selected team.                                                                                        | UC-28     | BR-45, BR-52                                           |
+| FR-27 | The system shall validate participant availability against personal and team schedules before saving a team appointment.                                                                                | UC-30     | BR-53, BR-54, BR-64, BR-65                             |
+| FR-28 | The system shall return participant conflict details when one or more required participants overlap with another appointment.                                                                           | UC-30     | BR-52, BR-53                                           |
+| FR-29 | The system shall suggest common free time slots only in dedicated availability checks.                                                                                                                  | UC-30     | BR-54, BR-64                                           |
+| FR-30 | The system shall allow Team Owner or Team Admin to change member role only between Team Admin and Team Member and shall reject Team Owner assignment through role-change operations.                    | UC-23     | BR-40, BR-58, BR-59, BR-63                             |
+| FR-31 | The system shall allow only the invited user to accept or decline a pending team invitation.                                                                                                            | UC-31     | BR-60, BR-61                                           |
+| FR-32 | The system shall create an active Team Member record when a pending invitation is accepted and shall update invitation status by the defined lifecycle.                                                 | UC-31     | BR-60, BR-62                                           |
+| FR-33 | The system shall allow an authorized user to check team availability for a proposed time range and return available participants, busy participants, conflict details, and suggested common free slots. | UC-30     | BR-53, BR-54, BR-64, BR-65                             |
+| FR-34 | The system shall allow an authenticated user to retrieve all team invitations addressed to them, including invitation status and optional status filtering.                                             | UC-31     | BR-60, BR-61, BR-66, BR-67                             |
 
 # Data Requirements
 
@@ -189,40 +195,40 @@ The logical data model shall include the following core entities and relationshi
 - StatisticsReport, representing summary analytics for a selected time range.
 - Team, representing a collaborative scheduling group owned by one user.
 - TeamMember, representing membership and role assignment within a team.
-- TeamAppointment, representing a calendar item shared within a team.
-- AppointmentParticipant, representing required participants for a team appointment.
+- TeamAppointment, representing a non-recurring calendar item shared within a team.
+- AppointmentParticipant, representing required and optional participants for a team appointment.
 - TeamInvitation, representing pending invitations to join a team.
 
 ## Data Dictionary
 
-| Data Element | Description | Data Type / Composition | Constraints |
-| --- | --- | --- | --- |
-| user | Registered system account | user id, full name, email, password hash, avatar, status, created date | Email unique; password hashed |
-| appointment | Personal appointment | appointment id, owner id, title, description, start datetime, end datetime, location, status, recurrence fields | Owner required; time range valid |
-| tag | Appointment label | tag id, tag name, tag color, owner id | Tag name unique per owner |
-| reminder | Scheduled reminder | reminder id, appointment id, user id, reminder time, delivery status | Reminder time before start time |
-| notification | Reminder history item | notification id, user id, appointment id, message, sent datetime, read status | System generated |
-| statistics report | Analytics summary | report id, user id, time range, completion rate, productive time slots | Calculated from user data |
-| team | Collaborative group | team id, team name, description, owner id, status, created date | Team name unique within owner scope |
-| team member | Team membership record | team id, user id, role, membership status, joined date | Role limited to approved values |
-| team appointment | Shared team calendar item | appointment id, team id, organizer id, title, start datetime, end datetime, participants, status | Requires active team membership |
-| appointment participant | Required team participant | team appointment id, user id, participation type | Used for conflict checking |
-| team invitation | Pending invite record | invitation id, team id, invited user id, invited by, role, status, created date | Invitation tracked until accepted or declined |
+| Data Element            | Description               | Data Type / Composition                                                                                         | Constraints                                                                                            |
+| ----------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| user                    | Registered system account | user id, full name, email, password hash, avatar, status, created date                                          | Email unique; password hashed                                                                          |
+| appointment             | Personal appointment      | appointment id, owner id, title, description, start datetime, end datetime, location, status, recurrence fields | Owner required; time range valid                                                                       |
+| tag                     | Appointment label         | tag id, tag name, tag color, owner id                                                                           | Tag name unique per owner                                                                              |
+| reminder                | Scheduled reminder        | reminder id, appointment id, user id, reminder time, delivery status                                            | Reminder time before start time                                                                        |
+| notification            | Reminder history item     | notification id, user id, appointment id, message, sent datetime, read status                                   | System generated                                                                                       |
+| statistics report       | Analytics summary         | report id, user id, time range, completion rate, productive time slots                                          | Calculated from user data                                                                              |
+| team                    | Collaborative group       | team id, team name, description, owner id, status, created date                                                 | Team name unique within owner scope                                                                    |
+| team member             | Team membership record    | team id, user id, role, membership status, joined date                                                          | Exactly one Team Owner per team; role changes only between Team Admin and Team Member                  |
+| team appointment        | Shared team calendar item | appointment id, team id, organizer id, title, start datetime, end datetime, participants, status                | Non-recurring; organizer required; requires active team membership                                     |
+| appointment participant | Team participant link     | team appointment id, user id, participation type                                                                | participation type is REQUIRED or OPTIONAL; duplicate rows not allowed                                 |
+| team invitation         | Pending invite record     | invitation id, team id, invited user id, invited by, role, status, created date                                 | Role limited to Team Admin or Team Member; status lifecycle: PENDING to ACCEPTED, DECLINED, or EXPIRED |
 
 ## Reports
 
 ### Exported Appointment Data
 
-| Report ID | COS-RPT-1 |
-| --- | --- |
-| Report Title | Appointment Data Export |
-| Report Purpose | Allows a user to export appointment data for backup or use in other applications. |
-| Priority | Medium |
-| Report Users | End User |
-| Data Sources | User appointment records |
-| Format | CSV |
+| Report ID          | COS-RPT-1                                                                                      |
+| ------------------ | ---------------------------------------------------------------------------------------------- |
+| Report Title       | Appointment Data Export                                                                        |
+| Report Purpose     | Allows a user to export appointment data for backup or use in other applications.              |
+| Priority           | Medium                                                                                         |
+| Report Users       | End User                                                                                       |
+| Data Sources       | User appointment records                                                                       |
+| Format             | CSV                                                                                            |
 | Selection Criteria | Export reflects the active filters applied by the user, including date range, tag, and status. |
-| Data Fields | Title, Start Time, End Time, Status, Tags, Description, Location |
+| Data Fields        | Title, Start Time, End Time, Status, Tags, Description, Location                               |
 
 ## Data Integrity, Retention, and Disposal
 
@@ -233,6 +239,8 @@ DI-2: When a user account is deleted, all associated personal records shall be r
 DI-3: Team appointments shall preserve audit history for create, update, and delete actions.
 
 DI-4: The system shall maintain referential integrity between users, teams, memberships, appointments, reminders, and notifications.
+
+DI-5: Team ownership shall remain unique per team; Team Owner cannot be assigned via invitation or member role-change operations; team appointment participant links shall remain unique per appointment.
 
 # External Interface Requirements
 
@@ -276,7 +284,7 @@ USE-3: A team owner should be able to create a team and send the first invitatio
 
 PER-1: Core personal appointment operations shall respond within 2 seconds under normal load.
 
-PER-2: Team appointment save operations, including multi-user conflict checks, shall respond within 3 seconds under normal load.
+PER-2: Team appointment save operations and dedicated availability checks, including multi-user conflict checks, shall respond within 3 seconds under normal load.
 
 PER-3: The statistics dashboard shall load within 5 seconds for up to one year of user data.
 

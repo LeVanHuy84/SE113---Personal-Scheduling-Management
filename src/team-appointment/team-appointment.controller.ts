@@ -15,13 +15,12 @@ import { PaginationResponseDto } from 'src/common/dto/pagination.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPrincipal } from '../auth/interfaces/current-user.interface';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CheckTeamAppointmentConflictsRequestDto } from './dto/check-team-appointment-conflicts-request.dto';
+import { CheckTeamAppointmentConflictsResponseDto } from './dto/check-team-appointment-conflicts-response.dto';
 import { CreateTeamAppointmentRequestDto } from './dto/create-team-appointment-request.dto';
 import { DeleteTeamAppointmentResponseDto } from './dto/delete-team-appointment-response.dto';
 import { GetTeamAppointmentsQueryDto } from './dto/get-team-appointments-query.dto';
-import {
-  TeamAppointmentListItemDto,
-  TeamAppointmentListResponseDto,
-} from './dto/team-appointment-list-response.dto';
+import { TeamAppointmentListItemDto } from './dto/team-appointment-list-response.dto';
 import { TeamAppointmentIdParamsDto } from './dto/team-appointment-id-params.dto';
 import { TeamAppointmentResponseDto } from './dto/team-appointment-response.dto';
 import { TeamIdParamsDto } from './dto/team-id-params.dto';
@@ -74,6 +73,20 @@ export class TeamAppointmentController {
       user.userId,
       params.teamId,
       params.id,
+      dto,
+    );
+  }
+
+  @Post('check-conflicts')
+  @HttpCode(HttpStatus.OK)
+  checkTeamAvailability(
+    @CurrentUser() user: CurrentUserPrincipal,
+    @Param() params: TeamIdParamsDto,
+    @Body() dto: CheckTeamAppointmentConflictsRequestDto,
+  ): Promise<CheckTeamAppointmentConflictsResponseDto> {
+    return this.teamAppointmentService.checkTeamAvailability(
+      user.userId,
+      params.teamId,
       dto,
     );
   }

@@ -5,18 +5,23 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, TeamRole } from '@prisma/client';
+import { Prisma, TeamRole, InvitationStatus } from '@prisma/client';
+import { ChangeMemberRoleRequestDto } from './dto/change-member-role-request.dto';
 import { CreateTeamInvitationRequestDto } from './dto/create-team-invitation-request.dto';
 import { CreateTeamRequestDto } from './dto/create-team-request.dto';
 import { GetTeamsQueryDto } from './dto/get-teams-query.dto';
+import { InvitationActionResponseDto } from './dto/invitation-action-response.dto';
 import { LeaveTeamResponseDto } from './dto/leave-team-response.dto';
 import { TeamDetailResponseDto } from './dto/team-detail-response.dto';
 import { TeamInvitationResponseDto } from './dto/team-invitation-response.dto';
 import { TeamListResponseDto } from './dto/team-list-response.dto';
 import { TeamMemberListResponseDto } from './dto/team-member-list-response.dto';
+import { TeamMemberRoleResponseDto } from './dto/team-member-role-response.dto';
 import { TeamResponseDto } from './dto/team-response.dto';
 import { TeamRepository } from './team.repository';
 import { NotificationService } from '../notification/notification.service';
+import { GetMyInvitationsQueryDto } from './dto/get-my-invitations-query.dto';
+import { TeamMyInvitationItemDto } from './dto/team-my-invitation-response.dto';
 
 @Injectable()
 export class TeamService {
@@ -66,6 +71,30 @@ export class TeamService {
       limit: query.limit,
       searchText: query.searchText,
     });
+  }
+
+  async getMyInvitations(
+    userId: string,
+    query?: GetMyInvitationsQueryDto,
+  ): Promise<TeamMyInvitationItemDto[]> {
+    const invitations =
+      await this.teamRepository.findInvitationsByInvitee(userId);
+
+    const items = invitations.map((invitation) => ({
+      invitationId: invitation.id,
+      teamId: invitation.teamId,
+      teamName: invitation.team.name,
+      role: invitation.role,
+      status: this.resolveInvitationStatus(invitation),
+      invitedAt: invitation.createdAt,
+      expiresAt: invitation.expiresAt,
+    }));
+
+    if (!query?.status) {
+      return items;
+    }
+
+    return items.filter((item) => item.status === query.status);
   }
 
   async getTeamDetail(
@@ -148,12 +177,19 @@ export class TeamService {
       );
     }
 
+    const roleToAssign = dto.role ?? TeamRole.MEMBER;
+    if (roleToAssign === TeamRole.OWNER) {
+      throw new BadRequestException(
+        'Cannot assign OWNER role through invitation',
+      );
+    }
+
     try {
       const invitation = await this.teamRepository.createInvitation({
         teamId,
         invitedUserId: dto.invitedUserId,
         invitedById: userId,
-        role: dto.role ?? TeamRole.MEMBER,
+        role: roleToAssign,
         expiresAt: dto.expiresAt,
       });
 
@@ -225,6 +261,181 @@ export class TeamService {
     };
   }
 
+  async acceptInvitation(
+    userId: string,
+    teamId: string,
+    invitationId: string,
+  ): Promise<InvitationActionResponseDto> {
+    const invitation = await this.teamRepository.findPendingInvitation({
+      teamId,
+      invitationId,
+    });
+
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found');
+    }
+
+    if (invitation.teamId !== teamId) {
+      throw new BadRequestException('Invitation does not belong to this team');
+    }
+
+    if (invitation.status !== InvitationStatus.PENDING) {
+      throw new ConflictException(
+        'Invitation is not in PENDING state. Cannot accept.',
+      );
+    }
+
+    if (invitation.invitedUserId !== userId) {
+      throw new ForbiddenException('Only invited user can accept invitation');
+    }
+
+    if (invitation.expiresAt && invitation.expiresAt.getTime() <= Date.now()) {
+      throw new ConflictException('Invitation has expired');
+    }
+
+    const isAlreadyMember = await this.teamRepository.isActiveMember({
+      teamId,
+      userId,
+    });
+    if (isAlreadyMember) {
+      throw new ConflictException('User is already an active team member');
+    }
+
+    try {
+      await this.teamRepository.createTeamMemberFromInvitation({
+        teamId,
+        userId,
+        role: invitation.role,
+      });
+
+      await this.teamRepository.updateInvitationStatus({
+        invitationId,
+        status: InvitationStatus.ACCEPTED,
+      });
+
+      return {
+        message: 'Invitation accepted successfully',
+        data: null,
+      };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('User is already an active team member');
+      }
+      throw error;
+    }
+  }
+
+  async declineInvitation(
+    userId: string,
+    teamId: string,
+    invitationId: string,
+  ): Promise<InvitationActionResponseDto> {
+    const invitation = await this.teamRepository.findPendingInvitation({
+      teamId,
+      invitationId,
+    });
+
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found');
+    }
+
+    if (invitation.teamId !== teamId) {
+      throw new BadRequestException('Invitation does not belong to this team');
+    }
+
+    if (invitation.status !== InvitationStatus.PENDING) {
+      throw new ConflictException(
+        'Invitation is not in PENDING state. Cannot decline.',
+      );
+    }
+
+    if (invitation.invitedUserId !== userId) {
+      throw new ForbiddenException('Only invited user can decline invitation');
+    }
+
+    await this.teamRepository.updateInvitationStatus({
+      invitationId,
+      status: InvitationStatus.DECLINED,
+    });
+
+    return {
+      message: 'Invitation declined successfully',
+      data: null,
+    };
+  }
+
+  async changeMemberRole(
+    userId: string,
+    teamId: string,
+    targetUserId: string,
+    dto: ChangeMemberRoleRequestDto,
+  ): Promise<TeamMemberRoleResponseDto> {
+    if (dto.role === TeamRole.OWNER) {
+      throw new BadRequestException(
+        'Cannot assign OWNER role through this API',
+      );
+    }
+
+    const team = await this.teamRepository.findTeamById(teamId);
+    if (!team) {
+      throw new NotFoundException(`Team with id ${teamId} not found`);
+    }
+
+    const callerRole = await this.getActiveRole(teamId, userId, team.ownerId);
+    if (
+      !callerRole ||
+      (callerRole !== TeamRole.OWNER && callerRole !== TeamRole.ADMIN)
+    ) {
+      throw new ForbiddenException(
+        'Only team owner or admin can change member role',
+      );
+    }
+
+    const targetMembership = await this.teamRepository.findMembershipWithRole({
+      teamId,
+      userId: targetUserId,
+    });
+
+    if (!targetMembership) {
+      throw new NotFoundException(
+        `Member with id ${targetUserId} not found in team`,
+      );
+    }
+
+    if (targetMembership.role === TeamRole.OWNER) {
+      throw new ConflictException('Cannot modify Team Owner role');
+    }
+
+    // Business Rule BR-63: Admin cannot change another Admin
+    if (
+      callerRole === TeamRole.ADMIN &&
+      targetMembership.role === TeamRole.ADMIN
+    ) {
+      throw new ForbiddenException('Admin cannot modify another admin');
+    }
+
+    if (targetMembership.role === dto.role) {
+      throw new ConflictException('Member already has this role');
+    }
+
+    const updated = await this.teamRepository.updateMemberRole({
+      teamId,
+      userId: targetUserId,
+      role: dto.role,
+    });
+
+    return {
+      teamId: updated.teamId,
+      userId: updated.userId,
+      role: updated.role,
+      updatedById: userId,
+      updatedAt: updated.updatedAt,
+    };
+  }
+
   private async assertCanViewTeam(
     userId: string,
     teamId: string,
@@ -254,5 +465,20 @@ export class TeamService {
       userId,
     });
     return membership?.role ?? null;
+  }
+
+  private resolveInvitationStatus(input: {
+    status: InvitationStatus;
+    expiresAt: Date | null;
+  }): InvitationStatus {
+    if (
+      input.status === InvitationStatus.PENDING &&
+      input.expiresAt &&
+      input.expiresAt.getTime() <= Date.now()
+    ) {
+      return InvitationStatus.EXPIRED;
+    }
+
+    return input.status;
   }
 }

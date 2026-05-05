@@ -377,6 +377,42 @@ export class TeamRepository {
     };
   }
 
+  async findInvitationsByInvitee(userId: string): Promise<
+    Array<{
+      id: string;
+      teamId: string;
+      role: TeamRole;
+      status: InvitationStatus;
+      createdAt: Date;
+      expiresAt: Date | null;
+      team: {
+        name: string;
+      };
+    }>
+  > {
+    return this.prisma.teamInvitation.findMany({
+      where: {
+        invitedUserId: userId,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      select: {
+        id: true,
+        teamId: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        expiresAt: true,
+        team: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
   async countActiveOwners(teamId: string): Promise<number> {
     return this.prisma.teamMember.count({
       where: {
@@ -400,6 +436,115 @@ export class TeamRepository {
       },
       data: {
         status: MembershipStatus.INACTIVE,
+      },
+    });
+  }
+
+  async findPendingInvitation(input: {
+    teamId: string;
+    invitationId: string;
+  }): Promise<{
+    id: string;
+    teamId: string;
+    invitedUserId: string;
+    role: TeamRole;
+    status: any;
+    expiresAt: Date | null;
+  } | null> {
+    return this.prisma.teamInvitation.findUnique({
+      where: { id: input.invitationId },
+      select: {
+        id: true,
+        teamId: true,
+        invitedUserId: true,
+        role: true,
+        status: true,
+        expiresAt: true,
+      },
+    });
+  }
+
+  async updateInvitationStatus(input: {
+    invitationId: string;
+    status: any;
+  }): Promise<void> {
+    await this.prisma.teamInvitation.update({
+      where: { id: input.invitationId },
+      data: {
+        status: input.status,
+        respondedAt: new Date(),
+      },
+    });
+  }
+
+  async createTeamMemberFromInvitation(input: {
+    teamId: string;
+    userId: string;
+    role: TeamRole;
+  }): Promise<void> {
+    await this.prisma.teamMember.create({
+      data: {
+        teamId: input.teamId,
+        userId: input.userId,
+        role: input.role,
+        status: MembershipStatus.ACTIVE,
+      },
+    });
+  }
+
+  async updateMemberRole(input: {
+    teamId: string;
+    userId: string;
+    role: TeamRole;
+  }): Promise<{
+    teamId: string;
+    userId: string;
+    role: TeamRole;
+    updatedAt: Date;
+  }> {
+    const updated = await this.prisma.teamMember.update({
+      where: {
+        teamId_userId: {
+          teamId: input.teamId,
+          userId: input.userId,
+        },
+      },
+      data: {
+        role: input.role,
+        updatedAt: new Date(),
+      },
+      select: {
+        teamId: true,
+        userId: true,
+        role: true,
+        updatedAt: true,
+      },
+    });
+
+    return updated;
+  }
+
+  async findMembershipWithRole(input: {
+    teamId: string;
+    userId: string;
+  }): Promise<{
+    teamId: string;
+    userId: string;
+    role: TeamRole;
+    status: MembershipStatus;
+  } | null> {
+    return this.prisma.teamMember.findUnique({
+      where: {
+        teamId_userId: {
+          teamId: input.teamId,
+          userId: input.userId,
+        },
+      },
+      select: {
+        teamId: true,
+        userId: true,
+        role: true,
+        status: true,
       },
     });
   }
