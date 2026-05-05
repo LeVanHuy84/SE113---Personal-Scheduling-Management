@@ -354,6 +354,66 @@ export class TeamAppointmentRepository {
     };
   }
 
+  async findCalendarAppointments(input: {
+    userId: string;
+    from: Date;
+    to: Date;
+    teamIds?: string[];
+  }): Promise<
+    Array<{
+      id: string;
+      teamId: string;
+      title: string;
+      startAt: Date;
+      endAt: Date;
+    }>
+  > {
+    const where: Prisma.TeamAppointmentWhereInput = {
+      startAt: { lt: input.to },
+      endAt: { gt: input.from },
+      OR: [
+        { organizerId: input.userId },
+        {
+          participants: {
+            some: {
+              userId: input.userId,
+            },
+          },
+        },
+        {
+          team: {
+            members: {
+              some: {
+                userId: input.userId,
+                status: MembershipStatus.ACTIVE,
+              },
+            },
+          },
+        },
+      ],
+    };
+
+    if (input.teamIds?.length) {
+      where.teamId = {
+        in: input.teamIds,
+      };
+    }
+
+    return this.prisma.teamAppointment.findMany({
+      where,
+      orderBy: {
+        startAt: 'asc',
+      },
+      select: {
+        id: true,
+        teamId: true,
+        title: true,
+        startAt: true,
+        endAt: true,
+      },
+    });
+  }
+
   async findPersonalConflicts(input: {
     userId: string;
     startAt: Date;

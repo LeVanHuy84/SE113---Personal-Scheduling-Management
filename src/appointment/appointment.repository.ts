@@ -7,10 +7,9 @@ import { TagResponseDto } from 'src/tag/dto/tag-response.dto';
 import { AppointmentResponseDto } from './dto/appointment-response.dto';
 import { AppointmentQueryDto } from './dto/get-appointments-query.dto';
 
-
 @Injectable()
 export class AppointmentRepository {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   toDto(entity): AppointmentResponseDto {
     return {
@@ -24,27 +23,30 @@ export class AppointmentRepository {
       isRecurringInstance: entity.isRecurringInstance,
       jobId: entity.jobId,
       status: entity.status,
-      tags: (entity.series?.tags ?? []).map(t => ({
+      tags: (entity.series?.tags ?? []).map((t) => ({
         id: t.tag.id,
         name: t.tag.name,
         color: t.tag.color,
       })) as TagResponseDto[],
-    }
+    };
   }
 
-  async expandSeries(pattern: {
-    id: string;
-    userId: string;
-    startAt: Date;
-    endAt: Date;
-    recurrenceType: any;
-    weeklyDay?: any[];
-    monthlyDay?: number | null;
-    yearlyDay?: number | null;
-    yearlyMonth?: number | null;
-    offsetMinutes?: number | null;
-  }, from: Date, to: Date): Promise<{ id: string, occurrence: Date }[]> {
-
+  async expandSeries(
+    pattern: {
+      id: string;
+      userId: string;
+      startAt: Date;
+      endAt: Date;
+      recurrenceType: any;
+      weeklyDay?: any[];
+      monthlyDay?: number | null;
+      yearlyDay?: number | null;
+      yearlyMonth?: number | null;
+      offsetMinutes?: number | null;
+    },
+    from: Date,
+    to: Date,
+  ): Promise<{ id: string; occurrence: Date }[]> {
     // 🔹 1. Tạo occurrences từ helper
     const occurrences = generateOccurrences(pattern, from, to);
     if (!occurrences.length) return [];
@@ -55,19 +57,21 @@ export class AppointmentRepository {
         seriesId: pattern.id,
         isRecurringInstance: true,
         startAt: {
-          gte: new Date(Math.min(...occurrences.map(o => o.start.getTime()))),
-          lte: new Date(Math.max(...occurrences.map(o => o.start.getTime()))),
+          gte: new Date(Math.min(...occurrences.map((o) => o.start.getTime()))),
+          lte: new Date(Math.max(...occurrences.map((o) => o.start.getTime()))),
         },
       },
       select: { startAt: true },
     });
 
-    const existingSet = new Set(existingAppointments.map(a => a.startAt.getTime()));
+    const existingSet = new Set(
+      existingAppointments.map((a) => a.startAt.getTime()),
+    );
 
     // 🔹 3. Lọc các occurrences chưa tồn tại
     const newAppointments = occurrences
-      .filter(occ => !existingSet.has(occ.start.getTime()))
-      .map(occ => ({
+      .filter((occ) => !existingSet.has(occ.start.getTime()))
+      .map((occ) => ({
         userId: pattern.userId,
         seriesId: pattern.id,
         startAt: occ.start,
@@ -81,26 +85,29 @@ export class AppointmentRepository {
     if (!newAppointments.length) return [];
 
     // 🔹 4. Bulk insert
-    return (await this.prisma.appointment.createManyAndReturn({
-      data: newAppointments,
-      skipDuplicates: true,
-    })).map(a => ({
+    return (
+      await this.prisma.appointment.createManyAndReturn({
+        data: newAppointments,
+        skipDuplicates: true,
+      })
+    ).map((a) => ({
       id: a.id,
-      occurrence: new Date(a.startAt.getTime() - (pattern.offsetMinutes ?? 0) * 60000),
+      occurrence: new Date(
+        a.startAt.getTime() - (pattern.offsetMinutes ?? 0) * 60000,
+      ),
     }));
-
   }
 
   async markMissedAppointments(id: string) {
     const exsiting = await this.prisma.appointment.findFirst({
       where: {
         id: id,
-      }
-    })
+      },
+    });
     if (exsiting?.status === 'SCHEDULED') {
       await this.prisma.appointment.update({
         where: {
-          id: id
+          id: id,
         },
         data: { status: 'MISSED' },
       });
@@ -110,9 +117,9 @@ export class AppointmentRepository {
   async findById(id: string) {
     return this.prisma.appointment.findFirstOrThrow({
       where: {
-        id: id
-      }
-    })
+        id: id,
+      },
+    });
   }
 
   async update(arg: Prisma.AppointmentUpdateArgs) {
@@ -120,9 +127,10 @@ export class AppointmentRepository {
     return this.toDto(update);
   }
 
-
   // hàm find theo query
-  async findAppointments(query: AppointmentQueryDto): Promise<PaginationResponseDto<AppointmentResponseDto[]>> {
+  async findAppointments(
+    query: AppointmentQueryDto,
+  ): Promise<PaginationResponseDto<AppointmentResponseDto[]>> {
     const { page = 1, limit = 10, userId } = query;
     const skip = (page - 1) * limit;
 
@@ -130,42 +138,83 @@ export class AppointmentRepository {
       userId: userId,
     };
 
-    const [items, total] = await Promise.all([this.prisma.appointment.findMany({
-      where,
-      orderBy: {
-        createdAt: 'asc',
-      },
-      skip,
-      take: limit,
-      select: {
-        id: true,
-        userId: true,
-        startAt: true,
-        endAt: true,
-        status: true,
-        isRecurringInstance: true,
-        series: {
-          include: {
-            tags: {
-              include: {
-                tag: {
-                  select: {
-                    id: true,
-                    name: true,
-                    color: true,
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-    }),
-    this.prisma.appointment.count({ where })]);
+    const [items, total] = await Promise.all([
+      this.prisma.appointment.findMany({
+        where,
+        orderBy: {
+          createdAt: 'asc',
+        },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          userId: true,
+          startAt: true,
+          endAt: true,
+          status: true,
+          isRecurringInstance: true,
+          series: {
+            include: {
+              tags: {
+                include: {
+                  tag: {
+                    select: {
+                      id: true,
+                      name: true,
+                      color: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.appointment.count({ where }),
+    ]);
 
     return {
-      items: items.map(item => this.toDto(item)), total, page, limit
+      items: items.map((item) => this.toDto(item)),
+      total,
+      page,
+      limit,
     };
+  }
+
+  async findCalendarAppointments(input: {
+    userId: string;
+    from: Date;
+    to: Date;
+  }): Promise<
+    Array<{
+      id: string;
+      startAt: Date;
+      endAt: Date;
+      series: {
+        title: string;
+      } | null;
+    }>
+  > {
+    return this.prisma.appointment.findMany({
+      where: {
+        userId: input.userId,
+        startAt: { lt: input.to },
+        endAt: { gt: input.from },
+      },
+      orderBy: {
+        startAt: 'asc',
+      },
+      select: {
+        id: true,
+        startAt: true,
+        endAt: true,
+        series: {
+          select: {
+            title: true,
+          },
+        },
+      },
+    });
   }
 
   // for cronjob
@@ -186,7 +235,7 @@ export class AppointmentRepository {
   }
 
   async updateAppointmentsWithJob(
-    updates: { appointmentId: string, jobId: string }[]
+    updates: { appointmentId: string; jobId: string }[],
   ) {
     if (!updates.length) return;
 
@@ -196,8 +245,8 @@ export class AppointmentRepository {
         this.prisma.appointment.update({
           where: { id: appointmentId },
           data: { jobId: jobId },
-        })
-      )
+        }),
+      ),
     );
   }
 
@@ -215,6 +264,4 @@ export class AppointmentRepository {
     });
     return deleted.count;
   }
-
 }
-
