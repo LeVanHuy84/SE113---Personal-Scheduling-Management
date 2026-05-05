@@ -1,0 +1,188 @@
+PS D:\VsCode\NestJS\PSMS_System\psms> npx jest src/team/team.service.spec.ts -i
+ FAIL  src/team/team.service.spec.ts
+  TeamService (Business-rule driven tests)
+    createTeam (FR-TEAM-01)
+      √ should throw ConflictException when owner already has a team with same name (FR-TEAM-01) (4 ms)
+    inviteMember (BR-Invite-OwnerAdminOnly, BR-CannotAssignOwner)
+      √ should forbid non-owner/non-admin from inviting (BR-Invite-OwnerAdminOnly) (3 ms)
+      × should reject assigning OWNER role via invitation (BR-CannotAssignOwner) (1 ms)
+    acceptInvitation / declineInvitation (BR-Invitation-Lifecycle)
+      √ should forbid acceptance by non-invited user (BR-Invitation-Lifecycle) (1 ms)
+      √ should throw ConflictException when invitation is expired (BR-Invitation-Lifecycle) (1 ms)
+      √ should accept invitation and create membership (FR-TEAM-INVITE-ACCEPT) (1 ms)
+    changeMemberRole (BR-63, BR-CannotAssignOwner)
+      √ should reject attempts to assign OWNER role (BR-CannotAssignOwner) (1 ms)
+      × should forbid an admin from changing another admin (BR-63)
+    leaveTeam (BR-Owner-Transfer)
+      √ should prevent last owner from leaving the team (BR-Owner-Transfer)
+
+  ● TeamService (Business-rule driven tests) › inviteMember (BR-Invite-OwnerAdminOnly, BR-CannotAssignOwner) › should reject assigning OWNER role via invitation (BR-CannotAssignOwner)
+
+    expect(received).rejects.toBeInstanceOf(expected)
+
+    Expected constructor: BadRequestException
+    Received constructor: TypeError
+
+      51 |       await expect(
+      52 |         service.inviteMember('owner-1', 't1', { invitedUserId: 'u3', role: TeamRole.OWNER } as any),
+    > 53 |       ).rejects.toBeInstanceOf(BadRequestException);
+         |                 ^
+      54 |     });
+      55 |   });
+      56 |
+
+      at Object.toBeInstanceOf (../node_modules/expect/build/index.js:2155:20)
+      at Object.<anonymous> (team/team.service.spec.ts:53:17)
+
+  ● TeamService (Business-rule driven tests) › changeMemberRole (BR-63, BR-CannotAssignOwner) › should forbid an admin from changing another admin (BR-63)
+
+    expect(received).rejects.toBeInstanceOf(expected)
+
+    Expected constructor: ForbiddenException
+    Received constructor: TypeError
+
+       98 |       await expect(
+       99 |         service.changeMemberRole('admin-1', 'team-1', 'admin-2', { role: TeamRole.MEMBER } as any),
+    > 100 |       ).rejects.toBeInstanceOf(ForbiddenException);
+          |                 ^
+      101 |     });
+      102 |   });
+      103 |
+
+      at Object.toBeInstanceOf (../node_modules/expect/build/index.js:2155:20)
+      at Object.<anonymous> (team/team.service.spec.ts:100:17)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 7 passed, 9 total
+Snapshots:   0 total
+Time:        0.777 s
+Ran all test suites matching src/team/team.service.spec.ts.
+PS D:\VsCode\NestJS\PSMS_System\psms> npx jest src/team/team.service.spec.ts -i
+ FAIL  src/team/team.service.spec.ts
+  TeamService (Business-rule driven tests)
+    createTeam (FR-TEAM-01)
+      √ should throw ConflictException when owner already has a team with same name (FR-TEAM-01) (4 ms)
+    inviteMember (BR-Invite-OwnerAdminOnly, BR-CannotAssignOwner)
+      √ should forbid non-owner/non-admin from inviting (BR-Invite-OwnerAdminOnly) (1 ms)
+      √ should reject assigning OWNER role via invitation (BR-CannotAssignOwner)
+    acceptInvitation / declineInvitation (BR-Invitation-Lifecycle)
+      √ should forbid acceptance by non-invited user (BR-Invitation-Lifecycle) (1 ms)
+      √ should throw ConflictException when invitation is expired (BR-Invitation-Lifecycle)
+      √ should accept invitation and create membership (FR-TEAM-INVITE-ACCEPT) (2 ms)
+    changeMemberRole (BR-63, BR-CannotAssignOwner)
+      √ should reject attempts to assign OWNER role (BR-CannotAssignOwner) (1 ms)
+      × should forbid an admin from changing another admin (BR-63) (2 ms)
+    leaveTeam (BR-Owner-Transfer)
+      √ should prevent last owner from leaving the team (BR-Owner-Transfer) (1 ms)
+
+  ● TeamService (Business-rule driven tests) › changeMemberRole (BR-63, BR-CannotAssignOwner) › should forbid an admin from changing another admin (BR-63)
+
+    expect(received).rejects.toBeInstanceOf()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"role": "MEMBER", "teamId": "team-1", "updatedAt": 2026-05-04T08:59:18.910Z, "updatedById": "admin-1", "userId": "admin-2"}
+
+       99 |       mockRepo.updateMemberRole = jest.fn().mockResolvedValue({ teamId: 'team-1', userId: 'admin-2', role: TeamRole.MEMBER, updatedAt: new Date() });
+      100 |
+    > 101 |       await expect(
+          |             ^
+      102 |         service.changeMemberRole('admin-1', 'team-1', 'admin-2', { role: TeamRole.MEMBER } as any),
+      103 |       ).rejects.toBeInstanceOf(ForbiddenException);
+      104 |     });
+
+      at expect (../node_modules/expect/build/index.js:2116:15)
+      at Object.<anonymous> (team/team.service.spec.ts:101:13)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 8 passed, 9 total
+Snapshots:   0 total
+Time:        0.745 s, estimated 1 s
+Ran all test suites matching src/team/team.service.spec.ts.
+PS D:\VsCode\NestJS\PSMS_System\psms> npx jest src/team/team.service.spec.ts -i
+ PASS  src/team/team.service.spec.ts
+  TeamService (Business-rule driven tests)
+    createTeam (FR-TEAM-01)
+      √ should throw ConflictException when owner already has a team with same name (FR-TEAM-01) (3 ms)
+    inviteMember (BR-Invite-OwnerAdminOnly, BR-CannotAssignOwner)
+      √ should forbid non-owner/non-admin from inviting (BR-Invite-OwnerAdminOnly) (1 ms)
+      √ should reject assigning OWNER role via invitation (BR-CannotAssignOwner) (1 ms)
+    acceptInvitation / declineInvitation (BR-Invitation-Lifecycle)
+      √ should forbid acceptance by non-invited user (BR-Invitation-Lifecycle) (1 ms)
+      √ should throw ConflictException when invitation is expired (BR-Invitation-Lifecycle)
+      √ should accept invitation and create membership (FR-TEAM-INVITE-ACCEPT) (1 ms)
+    changeMemberRole (BR-63, BR-CannotAssignOwner)
+      √ should reject attempts to assign OWNER role (BR-CannotAssignOwner) (1 ms)
+      √ should forbid an admin from changing another admin (BR-63) (1 ms)
+    leaveTeam (BR-Owner-Transfer)
+      √ should prevent last owner from leaving the team (BR-Owner-Transfer) (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       9 passed, 9 total
+Snapshots:   0 total
+Time:        0.731 s, estimated 1 s
+Ran all test suites matching src/team/team.service.spec.ts.
+PS D:\VsCode\NestJS\PSMS_System\psms> npx jest src/team-appointment/team-appointment.service.spec.ts -i
+ FAIL  src/team-appointment/team-appointment.service.spec.ts
+  TeamAppointmentService (Business-rule driven tests)
+    createTeamAppointment (FR-TA-Create Owner/Admin only)
+      √ should forbid non-owner/non-admin from creating team appointment (FR-TA-Create) (4 ms)
+      × should include organizer in participant list (BR-Organizer-Included) (2 ms)
+      √ should reject duplicate participantUserIds (BR-No-Duplicate-Participants) (1 ms)
+      √ should reject participants who are not active members (BR-Participants-ActiveMembers) (1 ms)
+      × should return conflicts but still create appointment (BR-Conflict-Does-Not-Block)
+    checkTeamAvailability (FR-TA-Availability)
+      √ should return suggested slots and availability without modifying data (FR-TA-Availability) (2 ms)
+
+  ● TeamAppointmentService (Business-rule driven tests) › createTeamAppointment (FR-TA-Create Owner/Admin only) › should include organizer in participant list (BR-Organizer-Included)
+
+    TypeError: Cannot read properties of undefined (reading 'trim')
+
+      83 |       teamId,
+      84 |       organizerId: userId,
+    > 85 |       title: dto.title.trim(),
+         |                        ^
+      86 |       description: dto.description ?? null,
+      87 |       location: dto.location ?? null,
+      88 |       startAt,
+
+      at TeamAppointmentService.createTeamAppointment (team-appointment/team-appointment.service.ts:85:24)
+      at Object.<anonymous> (team-appointment/team-appointment.service.spec.ts:35:7)
+
+  ● TeamAppointmentService (Business-rule driven tests) › createTeamAppointment (FR-TA-Create Owner/Admin only) › should return conflicts but still create appointment (BR-Conflict-Does-Not-Block)
+
+    TypeError: Cannot read properties of undefined (reading 'trim')
+
+      83 |       teamId,
+      84 |       organizerId: userId,
+    > 85 |       title: dto.title.trim(),
+         |                        ^
+      86 |       description: dto.description ?? null,
+      87 |       location: dto.location ?? null,
+      88 |       startAt,
+
+      at TeamAppointmentService.createTeamAppointment (team-appointment/team-appointment.service.ts:85:24)
+      at Object.<anonymous> (team-appointment/team-appointment.service.spec.ts:75:19)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 4 passed, 6 total
+Snapshots:   0 total
+Time:        0.975 s
+Ran all test suites matching src/team-appointment/team-appointment.service.spec.ts
+
+PS D:\VsCode\NestJS\PSMS_System\psms> npx jest src/team-appointment/team-appointment.service.spec.ts -i
+ PASS  src/team-appointment/team-appointment.service.spec.ts
+  TeamAppointmentService (Business-rule driven tests)
+    createTeamAppointment (FR-TA-Create Owner/Admin only)
+      √ should forbid non-owner/non-admin from creating team appointment (FR-TA-Create) (7 ms)
+      √ should include organizer in participant list (BR-Organizer-Included) (2 ms)
+      √ should reject duplicate participantUserIds (BR-No-Duplicate-Participants) (1 ms)
+      √ should reject participants who are not active members (BR-Participants-ActiveMembers)
+      √ should return conflicts but still create appointment (BR-Conflict-Does-Not-Block) (1 ms)
+    checkTeamAvailability (FR-TA-Availability)
+      √ should return suggested slots and availability without modifying data (FR-TA-Availability) (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       6 passed, 6 total
+Snapshots:   0 total
+Time:        0.813 s, estimated 1 s
+Ran all test suites matching src/team-appointment/team-appointment.service.spec.ts.

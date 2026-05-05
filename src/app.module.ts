@@ -16,9 +16,15 @@ import { RecurringModule } from './recurring/recurring.module';
 import { StatisticsModule } from './statistics/statistics.module';
 import { TagModule } from './tag/tag.module';
 import { UserModule } from './user/user.module';
+import { TagModule } from './tag/tag.module';
+import { AppointmentSeriesModule } from './appointment-series/series.module';
+import { TeamModule } from './team/team.module';
+import { TeamAppointmentModule } from './team-appointment/team-appointment.module';
+import { CalendarModule } from './calendar/calendar.module';
 
 @Module({
-  imports: [UserDeviceModule,
+  imports: [
+    UserDeviceModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath:
@@ -38,8 +44,11 @@ import { UserModule } from './user/user.module';
     AppointmentModule,
     TagModule,
     UserModule,
+    TeamModule,
+    TeamAppointmentModule,
+    CalendarModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

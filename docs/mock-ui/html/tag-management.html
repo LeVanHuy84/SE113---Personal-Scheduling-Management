@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PSMS – Tag Management</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f0f2f5; }
+    header { background: #333; color: #fff; display: flex; align-items: center; padding: 0 16px; height: 48px; gap: 12px; }
+    header .logo { font-weight: bold; font-size: 16px; margin-right: 16px; }
+    header input[type="text"] { flex: 1; max-width: 320px; padding: 6px 10px; border: none; font-size: 13px; }
+    header .notif-btn { background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; }
+    header .user-info { margin-left: auto; font-size: 13px; cursor: pointer; }
+    .layout { display: flex; min-height: calc(100vh - 48px); }
+    aside { width: 200px; background: #fff; border-right: 1px solid #ddd; padding: 16px; flex-shrink: 0; }
+    aside a { display: block; padding: 7px 8px; font-size: 14px; color: #333; text-decoration: none; border-radius: 4px; }
+    aside a:hover, aside a.active { background: #eee; font-weight: bold; }
+    main { flex: 1; padding: 20px; max-width: 860px; }
+    h2 { font-size: 20px; margin-bottom: 16px; }
+    .btn-primary { padding: 8px 16px; background: #333; color: #fff; border: none; cursor: pointer; font-size: 13px; }
+    .btn-secondary { padding: 6px 12px; background: #fff; color: #333; border: 1px solid #ccc; cursor: pointer; font-size: 12px; }
+    .btn-danger { padding: 6px 12px; background: #fff; color: #c00; border: 1px solid #e88; cursor: pointer; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; font-size: 13px; margin-top: 16px; }
+    th { background: #f5f5f5; padding: 10px 12px; text-align: left; border-bottom: 2px solid #ddd; font-size: 12px; text-transform: uppercase; }
+    td { padding: 10px 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
+    tr:hover td { background: #fafafa; }
+    .color-swatch { display: inline-block; width: 18px; height: 18px; border-radius: 4px; border: 1px solid #ddd; vertical-align: middle; }
+    .tag-preview-chip { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 12px; color: #fff; }
+    .usage-count { font-size: 12px; color: #555; }
+    .summary-row { font-size: 12px; color: #888; margin-top: 8px; }
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); align-items: center; justify-content: center; z-index: 100; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; padding: 28px; width: 400px; max-width: 96%; }
+    .modal h3 { font-size: 17px; margin-bottom: 20px; display: flex; justify-content: space-between; }
+    .modal h3 button { background: none; border: none; font-size: 18px; cursor: pointer; }
+    .form-row { margin-bottom: 14px; }
+    .form-row label { display: block; font-size: 12px; margin-bottom: 4px; font-weight: bold; }
+    .form-row input[type="text"] { width: 100%; padding: 8px; border: 1px solid #ccc; font-size: 13px; }
+    .color-palette { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+    .color-option { width: 26px; height: 26px; border-radius: 4px; border: 2px solid transparent; cursor: pointer; }
+    .color-option.selected, .color-option:hover { border-color: #333; }
+    .custom-hex { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+    .custom-hex input { width: 100px; padding: 6px; border: 1px solid #ccc; font-size: 13px; }
+    .color-preview-row { margin-top: 12px; font-size: 13px; }
+    .modal-footer { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+    .confirm-modal { background: #fff; padding: 28px; width: 380px; max-width: 95%; }
+    .confirm-modal h3 { font-size: 16px; margin-bottom: 12px; }
+    .confirm-modal p { font-size: 13px; color: #555; margin-bottom: 16px; }
+    .warn-text { background: #fff3cd; border: 1px solid #f0ad4e; padding: 8px; font-size: 12px; color: #856404; margin-bottom: 12px; }
+    .error-msg { background: #fce8e8; border: 1px solid #e88; color: #a00; padding: 7px; font-size: 12px; margin-bottom: 10px; display: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">PSMS</span>
+  <button class="notif-btn" onclick="window.location.href='notification-log.html'">🔔</button>
+  <input type="text" placeholder="Search appointments...">
+  <span class="user-info">▸ John Doe</span>
+</header>
+
+<div class="layout">
+  <aside>
+    <a href="calendar-dashboard.html">📅 Calendar</a>
+    <a href="appointment-management.html">📋 Appointments</a>
+    <a href="tag-management.html" class="active">🏷 Tags</a>
+    <a href="reminder-settings.html">🔔 Reminders</a>
+    <a href="notification-log.html">📩 Notifications</a>
+    <a href="statistics-dashboard.html">📊 Statistics</a>
+    <a href="export-data.html">📤 Export</a>
+    <a href="profile-page.html">👤 Profile</a>
+  </aside>
+
+  <main>
+    <h2>Tags &amp; Categories</h2>
+    <button class="btn-primary" onclick="openCreateModal()">+ Create New Tag</button>
+
+    <table id="tag-table">
+      <thead>
+        <tr>
+          <th>Color</th>
+          <th>Tag Name</th>
+          <th>Appointments</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tag-tbody">
+        <!-- Populated by JS -->
+      </tbody>
+    </table>
+    <p class="summary-row" id="tag-count">5 tags total</p>
+  </main>
+</div>
+
+<!-- Create Tag Modal -->
+<div class="modal-overlay" id="create-modal">
+  <div class="modal">
+    <h3><span>Create New Tag</span><button onclick="closeModal('create-modal')">×</button></h3>
+    <div class="error-msg" id="create-error">A tag with this name already exists.</div>
+    <div class="form-row">
+      <label>Tag Name *</label>
+      <input type="text" id="new-tag-name" placeholder="e.g. Work, Study, Health" oninput="updatePreview()">
+    </div>
+    <div class="form-row">
+      <label>Color</label>
+      <div class="color-palette" id="color-palette">
+        <div class="color-option selected" style="background:#4a90d9" data-color="#4a90d9" onclick="selectColor(this)"></div>
+        <div class="color-option" style="background:#e67e22" data-color="#e67e22" onclick="selectColor(this)"></div>
+        <div class="color-option" style="background:#27ae60" data-color="#27ae60" onclick="selectColor(this)"></div>
+        <div class="color-option" style="background:#e74c3c" data-color="#e74c3c" onclick="selectColor(this)"></div>
+        <div class="color-option" style="background:#9b59b6" data-color="#9b59b6" onclick="selectColor(this)"></div>
+        <div class="color-option" style="background:#1abc9c" data-color="#1abc9c" onclick="selectColor(this)"></div>
+        <div class="color-option" style="background:#f39c12" data-color="#f39c12" onclick="selectColor(this)"></div>
+        <div class="color-option" style="background:#34495e" data-color="#34495e" onclick="selectColor(this)"></div>
+      </div>
+      <div class="custom-hex">
+        Custom: <input type="text" id="hex-input" placeholder="#336699" oninput="hexChanged(this)">
+      </div>
+    </div>
+    <div class="color-preview-row">
+      Preview: <span class="tag-preview-chip" id="tag-preview" style="background:#4a90d9">New Tag</span>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('create-modal')">Cancel</button>
+      <button class="btn-primary" onclick="createTag()">Save Tag</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rename Modal -->
+<div class="modal-overlay" id="rename-modal">
+  <div class="modal">
+    <h3><span>Rename Tag</span><button onclick="closeModal('rename-modal')">×</button></h3>
+    <div class="error-msg" id="rename-error">A tag with this name already exists.</div>
+    <p style="font-size:13px;margin-bottom:12px;">Current name: <strong id="current-tag-name"></strong></p>
+    <div class="form-row">
+      <label>New Name *</label>
+      <input type="text" id="rename-input" placeholder="Enter new tag name">
+    </div>
+    <p style="font-size:12px;color:#555">This will update the tag name across all associated appointments.</p>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('rename-modal')">Cancel</button>
+      <button class="btn-primary" onclick="confirmRename()">Rename</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="confirm-modal">
+    <h3>Delete Tag</h3>
+    <p>Delete tag "<strong id="delete-tag-name"></strong>"?</p>
+    <div class="warn-text">⚠ This tag will be removed from all associated appointments.</div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('delete-modal')">Cancel</button>
+      <button class="btn-primary" style="background:#c00" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let tags = [
+    { name: 'Work',     color: '#4a90d9', count: 12 },
+    { name: 'Personal', color: '#e67e22', count:  7 },
+    { name: 'Study',    color: '#27ae60', count:  5 },
+    { name: 'Health',   color: '#e74c3c', count:  3 },
+    { name: 'Finance',  color: '#9b59b6', count:  0 },
+  ];
+  let selectedColor = '#4a90d9';
+  let editTargetIndex = -1;
+  let deleteTargetIndex = -1;
+
+  function renderTable() {
+    const tbody = document.getElementById('tag-tbody');
+    tbody.innerHTML = '';
+    tags.forEach((tag, i) => {
+      tbody.innerHTML += `
+        <tr>
+          <td><span class="color-swatch" style="background:${tag.color}"></span></td>
+          <td><span class="tag-preview-chip" style="background:${tag.color}">${tag.name}</span></td>
+          <td class="usage-count">${tag.count} appointments</td>
+          <td>
+            <button class="btn-secondary" onclick="openRenameModal(${i})">Rename</button>
+            <button class="btn-danger" onclick="openDeleteModal(${i})" style="margin-left:6px">✕ Delete</button>
+          </td>
+        </tr>`;
+    });
+    document.getElementById('tag-count').textContent = tags.length + ' tags total';
+  }
+
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  function openCreateModal() {
+    document.getElementById('create-error').style.display = 'none';
+    document.getElementById('new-tag-name').value = '';
+    updatePreview();
+    document.getElementById('create-modal').classList.add('open');
+  }
+
+  function selectColor(el) {
+    document.querySelectorAll('.color-option').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedColor = el.dataset.color;
+    document.getElementById('hex-input').value = '';
+    updatePreview();
+  }
+
+  function hexChanged(input) {
+    const v = input.value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) { selectedColor = v; updatePreview(); }
+  }
+
+  function updatePreview() {
+    const name = document.getElementById('new-tag-name').value || 'New Tag';
+    const p = document.getElementById('tag-preview');
+    p.textContent = name; p.style.background = selectedColor;
+  }
+
+  function createTag() {
+    const name = document.getElementById('new-tag-name').value.trim();
+    const err = document.getElementById('create-error');
+    if (!name) { err.textContent = 'Tag name is required.'; err.style.display = 'block'; return; }
+    if (tags.find(t => t.name.toLowerCase() === name.toLowerCase())) { err.style.display = 'block'; return; }
+    tags.push({ name, color: selectedColor, count: 0 });
+    renderTable(); closeModal('create-modal');
+  }
+
+  function openRenameModal(i) {
+    editTargetIndex = i;
+    document.getElementById('current-tag-name').textContent = tags[i].name;
+    document.getElementById('rename-input').value = tags[i].name;
+    document.getElementById('rename-error').style.display = 'none';
+    document.getElementById('rename-modal').classList.add('open');
+  }
+
+  function confirmRename() {
+    const newName = document.getElementById('rename-input').value.trim();
+    const err = document.getElementById('rename-error');
+    if (!newName) { err.textContent = 'Name cannot be empty.'; err.style.display = 'block'; return; }
+    if (tags.find((t, i) => t.name.toLowerCase() === newName.toLowerCase() && i !== editTargetIndex)) { err.style.display = 'block'; return; }
+    tags[editTargetIndex].name = newName;
+    renderTable(); closeModal('rename-modal');
+  }
+
+  function openDeleteModal(i) {
+    deleteTargetIndex = i;
+    document.getElementById('delete-tag-name').textContent = tags[i].name;
+    document.getElementById('delete-modal').classList.add('open');
+  }
+
+  function confirmDelete() {
+    tags.splice(deleteTargetIndex, 1);
+    renderTable(); closeModal('delete-modal');
+  }
+
+  renderTable();
+</script>
+</body>
+</html>

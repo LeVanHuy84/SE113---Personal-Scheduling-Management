@@ -1,312 +1,332 @@
-# Software Requirements Specification
+Software Requirements Specification
 
 for
-Personal Scheduling Management System, Release 1.0
 
-Version 1.0 approved
+Scheduling Management System
 
-Prepared by Team 6
+Release 1.0
 
-Process Impact
+**Version 1.0 approved**
 
-March 2026
+# Introduction
 
-## Table of Contents
+## Purpose
 
-- [Revision History](#revision-history)
-- [1. Introduction](#1-introduction)
-  - [1.1 Purpose](#11-purpose)
-  - [1.2 Document Conventions](#12-document-conventions)
-  - [1.3 Project Scope and Product Features](#13-project-scope-and-product-features)
-  - [1.4 References](#14-references)
-- [2. Overall Description](#2-overall-description)
-  - [2.1 Product Perspective](#21-product-perspective)
-  - [2.2 User Classes and Characteristics](#22-user-classes-and-characteristics)
-  - [2.3 Operating Environment](#23-operating-environment)
-  - [2.4 Design and Implementation Constraints](#24-design-and-implementation-constraints)
-  - [2.5 Assumptions and Dependencies](#25-assumptions-and-dependencies)
-- [3. System Features](#3-system-features)
-  - [3.1 User Account Management](#31-user-account-management)
-  - [3.2 Appointment Management](#32-appointment-management)
-  - [3.3 Calendar and Views](#33-calendar-and-views)
-  - [3.4 Reminders and Notifications](#34-reminders-and-notifications)
-  - [3.5 Productivity Statistics](#35-productivity-statistics)
-- [4. Data Requirements](#4-data-requirements)
-  - [4.1 Logical Data Model](#41-logical-data-model)
-  - [4.2 Data Dictionary](#42-data-dictionary)
-  - [4.3 Reports](#43-reports)
-  - [4.4 Data Integrity, Retention, and Disposal](#44-data-integrity-retention-and-disposal)
-- [5. External Interface Requirements](#5-external-interface-requirements)
-  - [5.1 User Interfaces](#51-user-interfaces)
-  - [5.2 Software Interfaces](#52-software-interfaces)
-  - [5.3 Hardware Interfaces](#53-hardware-interfaces)
-  - [5.4 Communications Interfaces](#54-communications-interfaces)
-- [6. Quality Attributes](#6-quality-attributes)
-  - [6.1 Usability Requirements](#61-usability-requirements)
-  - [6.2 Performance Requirements](#62-performance-requirements)
-  - [6.3 Security Requirements](#63-security-requirements)
-  - [6.4 Safety Requirements](#64-safety-requirements)
-  - [6.5 Availability Requirements](#65-availability-requirements)
-  - [6.6 Robustness Requirements](#66-robustness-requirements)
-- [Appendix A: Analysis Models](#appendix-a-analysis-models)
+This SRS describes the functional and nonfunctional requirements for release 1.0 of the Scheduling Management System. The specification is aligned to the approved Vision & Scope, Business Rules, and Use Case documents and covers both personal scheduling and collaborative team scheduling.
 
-## Revision History
-
-| Name       | Date     | Reason For Changes                                  | Version      |
-| :--------- | :------- | :-------------------------------------------------- | :----------- |
-| Lê Văn Huy | 09/03/26 | initial draft based on Vision, Rules, and Use Cases | 1.0 draft 1  |
-| Lê Văn Huy | 09/03/26 | baseline following changes after inspection         | 1.0 approved |
-
-## 1. Introduction
-
-### 1.1 Purpose
-
-This SRS describes the functional and nonfunctional requirements for software release 1.0 of the **Personal Scheduling Management System (PSMS)**. This document is intended to be used by the members of the project team who will implement and verify the correct functioning of the system. Unless otherwise noted, all requirements specified here are committed for release 1.0.
-
-### 1.2 Document Conventions
+## Document Conventions
 
 No special typographical conventions are used in this SRS.
 
-### 1.3 Project Scope and Product Features
+## Project Scope and Product Features
 
-The PSMS will permit users to create, manage, and analyze appointments and personal schedules efficiently. It helps users manage appointments and tasks, detects and prevents time conflicts, improves personal productivity, provides statistical insights into time usage, and offers automated reminders.
+The Scheduling Management System is a web application for personal appointment management and small-team collaboration. It supports account management, appointment lifecycle operations, recurring appointments, conflict detection, reminders, analytics, CSV export, team creation, shared calendars, team appointments, multi-user coordination, and availability checks with suggested common free slots.
 
-A detailed description is available in the _Personal Scheduling Management System Vision and Scope Document_ [1], along with the features that are scheduled for full or partial implementation in this release.
+## References
 
-The major features are:
+- Team 6. Vision & Scope Document for the Scheduling Management System, Version 1.0.
+- Team 6. Business Rules for Scheduling & Collaborative Team Management System, Version 1.0.
+- Team 6. Use Cases for the Scheduling Management System, Version 1.0.
 
-- User Registration and Authentication (JWT-based).
-- Create, edit, delete, and view appointments.
-- Support recurring appointments (daily, weekly, monthly).
-- Automatic time conflict detection.
-- Day, Week, Month, and Agenda calendar views.
-- Reminder and notification system.
-- Productivity statistics and reports.
-- Export appointment data.
-- Responsive and user-friendly Web UI.
+# Overall Description
 
-### 1.4 References
+## Product Perspective
 
-1.  Team 6. _Personal Scheduling Management System Vision and Scope Document_, Version 1.0.
-2.  Team 6. _Business Rules for Personal Scheduling Management System_, Version 1.0.
-3.  Team 6. _Use Cases for Personal Scheduling Management System_, Version 1.0.
+The Scheduling Management System is a new web-based application that provides a centralized scheduling environment for individuals and small teams. It replaces manual notes and fragmented tools with a shared calendar experience, conflict checking, and coordinated planning. The system is built with NextJS for the frontend and NestJS for the backend.
 
-## 2. Overall Description
+## User Classes and Characteristics
 
-### 2.1 Product Perspective
+| User Class           | Characteristics                                                                                                                               |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| End User             | An End User manages personal appointments and may also act as a Team Owner, Team Admin, Organizer, or Team Member in collaborative workflows. |
+| Scheduler Service    | An automated background service that triggers reminder notifications and related time-based events.                                           |
+| System Administrator | A technical user responsible for deployment, monitoring, and maintenance of the system.                                                       |
 
-The Personal Scheduling Management System is a new web-based application that provides a centralized, intelligent scheduling system to help users efficiently manage their time and appointments. It replaces manual notes or fragmented applications that lack synchronization, conflict detection, and productivity tracking features. The system is built with ReactJS for the frontend and NestJS for the backend.
+## Operating Environment
 
-The system is expected to evolve, with future releases potentially including integration with external calendar systems (e.g., Google Calendar) and support for enterprise-level collaboration.
+OE-1: The system shall operate correctly with modern web browsers including the latest versions of Google Chrome, Mozilla Firefox, Microsoft Edge, and Apple Safari.
 
-### 2.2 User Classes and Characteristics
-
-| User Class               | Characteristics                                                                                                                                                                                                                                                                                                     |
-| :----------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **End User**             | An End User is any individual (student, employee, freelancer) who needs to manage personal appointments and tasks. They require a simple, reliable interface to organize their schedule, prevent conflicts, and track their productivity. Users are expected to have basic web literacy and stable internet access. |
-| **Scheduler Service**    | An automated background service that is responsible for triggering time-based events, primarily sending reminder notifications for upcoming appointments. It operates without direct user interaction.                                                                                                              |
-| **System Administrator** | A technical user responsible for deploying, monitoring, and maintaining the system. They ensure the application is stable, secure, and performing optimally. Their focus is on server health, database management, and minimal downtime.                                                                            |
-
-### 2.3 Operating Environment
-
-OE-1: The PSMS shall operate correctly with modern web browsers, including the latest versions of Google Chrome, Mozilla Firefox, Microsoft Edge, and Apple Safari.
 OE-2: The backend shall be deployed in a Docker container.
-OE-3: The frontend will be a single-page application built with ReactJS.
-OE-4: The backend API will be built with NestJS.
-OE-5: The database will be PostgreSQL.
 
-### 2.4 Design and Implementation Constraints
+OE-3: The frontend shall be built with NextJS.
+
+OE-4: The backend API shall be built with NestJS.
+
+OE-5: The database shall be PostgreSQL.
+
+## Design and Implementation Constraints
 
 CO-1: User sessions must be authenticated using JSON Web Tokens (JWT).
-CO-2: All sensitive data, including user passwords, must be encrypted before storage and during transmission.
-CO-3: The system must be designed with a responsive UI to support various screen sizes, from desktops to mobile devices.
-CO-4: The system response time for core appointment operations must be under 2 seconds under normal load conditions.
 
-### 2.5 Assumptions and Dependencies
+CO-2: All sensitive data, including user passwords, must be protected before storage and during transmission.
+
+CO-3: The system must be designed with a responsive UI to support desktop and mobile devices.
+
+CO-4: Core appointment operations must respond within 2 seconds under normal load conditions.
+
+CO-5: Team appointment create, update, delete, and availability checks must enforce role-based access control.
+
+## Assumptions and Dependencies
 
 AS-1: Users have stable Internet access to use the web application.
+
 AS-2: The backend RESTful API built with NestJS will support a scalable architecture.
+
 AS-3: The PostgreSQL database will handle concurrent scheduling operations efficiently.
+
 AS-4: The JWT authentication mechanism will securely manage user sessions.
+
+AS-5: Team members maintain current availability information so the system can produce accurate conflict checks and suggested free slots.
+
 DE-1: The system depends on a reliable server hosting and deployment environment.
 
-## 3. System Features
+# System Features
 
-### 3.1 User Account Management
+## User Account Management
 
-**Description:**
-Users can create and manage a personal account to access the system. This includes registration, login, logout, and password management. Priority = High.
+### Description
 
-**Functional Requirements:**
+Users can register, authenticate, sign out, and manage their profile securely. Priority = High.
 
-|                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Account.Register: User Registration**<br><br>.Form: The system shall display a registration form for the user to enter their name, email, and password. (UC-1)<br><br>.Validation: The system shall validate that the provided email is unique and not already registered in the system. (UC-1, BR-1)<br><br>.Create: Upon successful validation, the system shall create a new user account. (UC-1)<br><br>.Encrypt: The system shall encrypt the user's password before storing it in the database. (UC-1, BR-32) |
-| **Account.Login: User Authentication**<br><br>.Credentials: The system shall allow a registered user to log in using their email and password. (UC-2)<br><br>.Authenticate: The system shall verify the user's credentials against the stored records. (UC-2, BR-2)<br><br>.Token: Upon successful authentication, the system shall generate a JWT access token to manage the user session. (UC-2, BR-3)<br><br>.Audit: The system shall log the authentication attempt for security auditing. (UC-2, BR-33)          |
-| **Account.Logout: User Logout**<br><br>.Terminate: The system shall allow a logged-in user to log out. (UC-3)<br><br>.Invalidate: Upon logout, the system shall invalidate the user's session token. (UC-3, BR-4)                                                                                                                                                                                                                                                                                                     |
-| **Account.Reset: Password Reset**<br><br>.Request: The system shall allow a user who has forgotten their password to request a reset link by providing their registered email address. (UC-4)<br><br>.SendLink: The system shall send a password reset link to the user's email. (UC-4)<br><br>.Update: The system shall allow the user to set a new password via the reset link, which will be encrypted and updated in the database. (UC-4, BR-32)                                                                  |
-| **Account.Profile: Manage Profile**<br><br>.View: The system shall allow a logged-in user to view their profile information. (UC-5)<br><br>.Update: The system shall allow the user to update their non-critical profile information, such as their name and avatar. (UC-5)                                                                                                                                                                                                                                           |
+### Functional Requirements
 
-### 3.2 Appointment Management
+| ID    | Requirement                                                                                                                                | Use Cases | Business Rules    |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ----------------- |
+| FR-01 | The system shall allow a user to register an account using a unique email address and shall store the password only after secure hashing.  | UC-1      | BR-1, BR-32       |
+| FR-02 | The system shall allow a registered user to log in with email and password, issue a JWT session token, and log the authentication attempt. | UC-2      | BR-2, BR-3, BR-33 |
+| FR-03 | The system shall allow an authenticated user to log out and invalidate the active session token.                                           | UC-3      | BR-4              |
+| FR-04 | The system shall allow a user to request a password reset and set a new password through a verified reset flow.                            | UC-4      | BR-32             |
+| FR-05 | The system shall allow a logged-in user to view and update non-sensitive profile information.                                              | UC-5      | BR-5              |
 
-**Description:**
-A logged-in user can create, view, update, and delete their personal appointments. The system will prevent scheduling conflicts. Priority = High.
+## Appointment Management
 
-**Functional Requirements:**
+### Description
 
-|                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Appt.Create: Create a new appointment**<br><br>.Form: The system shall provide a form for the user to enter appointment details, including title, start time, end time, description, and tags. (UC-6)<br><br>.TimeValidation: The system shall validate that the start time is before the end time and that the appointment is not in the past. (UC-6, BR-6, BR-7)<br><br>.ConflictCheck: The system shall automatically check for and prevent the creation of an appointment that overlaps with an existing appointment for that user. (UC-6, BR-8)<br><br>.Save: Upon successful validation, the system shall save the new appointment. (UC-6) |
-| **Appt.Update: Update an existing appointment**<br><br>.Edit: The system shall allow a user to modify the details of an appointment they created. (UC-7, BR-5)<br><br>.Recurring: If the appointment is part of a recurring series, the system shall prompt the user to update either the single instance or the entire series. (UC-7, BR-12)                                                                                                                                                                                                                                                                                                      |
-| **Appt.Delete: Delete an appointment**<br><br>.Remove: The system shall allow a user to delete an appointment they created. (UC-8, BR-5)<br><br>.Recurring: If deleting an appointment from a recurring series, the system shall prompt the user to delete the single instance or the entire series. (UC-8, BR-12)                                                                                                                                                                                                                                                                                                                                 |
-| **Appt.Recurrence: Manage recurring appointments**<br><br>.Pattern: The system shall allow a user to define a recurrence pattern (daily, weekly, monthly) when creating or editing an appointment. (UC-11, BR-9)<br><br>.Generate: The system shall generate and save all instances of the recurring appointment based on the defined pattern. (UC-11, BR-10)                                                                                                                                                                                                                                                                                      |
+Users can create, modify, delete, organize, and export personal appointments. Priority = High.
 
-| **Appt.Status: Manage appointment status**<br><br>
-.Complete: The system shall allow a user to mark an appointment's status as "COMPLETED". (UC-12, BR-14)<br><br>
-.Cancel: The system shall allow a user to cancel an appointment, changing its status to "CANCELLED". (UC-12)<br><br>
-.Reopen: The system shall allow a user to change a "COMPLETED" appointment back to "SCHEDULED" if needed. (UC-12)<br><br>
-.AutoMissed: The system shall automatically update an appointment's status to "MISSED" if the current time is past the appointment's end time and the status is still "SCHEDULED". (UC-20, BR-XX) |
-| **Appt.Organize: Search, Filter, and Tag**<br><br>.Search: The system shall allow a user to search for appointments by keywords in the title or description. (UC-13, BR-27)<br><br>.Filter: The system shall allow filtering of appointments by date range, tag, and status. (UC-13, BR-27)<br><br>.Tags: The system shall allow users to create, assign, and manage tags for organizing their appointments. (UC-14, BR-19) |
-| **Appt.Export: Export appointment data**<br><br>.Generate: The system shall allow a user to export their appointment data to a CSV file. (UC-19)<br><br>.Format: The exported file format must be CSV. (BR-29)<br><br>.Filter: The exported data must reflect any currently applied filters. (BR-28) |
+### Functional Requirements
 
-### 3.3 Calendar and Views
+| ID    | Requirement                                                                                                                                                               | Use Cases | Business Rules                      |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ----------------------------------- |
+| FR-06 | The system shall allow a user to create a personal appointment with title, start time, end time, description, location, tags, and optional recurrence.                    | UC-6      | BR-5, BR-6, BR-7, BR-8, BR-9, BR-10 |
+| FR-07 | The system shall allow a user to update an appointment they own and, for recurring appointments, choose whether to apply the change to one instance or the entire series. | UC-7      | BR-5, BR-12                         |
+| FR-08 | The system shall allow a user to delete an appointment they own and, for recurring appointments, choose whether to delete one instance or the entire series.              | UC-8      | BR-5, BR-12                         |
+| FR-09 | The system shall allow a user to mark an appointment as completed or cancelled and to reopen a completed appointment when permitted.                                      | UC-12     | BR-14                               |
+| FR-10 | The system shall allow a user to search and filter appointments by keyword, date range, tag, and status.                                                                  | UC-13     | BR-27                               |
+| FR-11 | The system shall allow a user to create, assign, and manage appointment tags.                                                                                             | UC-14     | BR-19                               |
+| FR-12 | The system shall allow a user to export appointment data in CSV format and preserve the active filters in the exported result.                                            | UC-19     | BR-28, BR-29                        |
 
-**Description:**
-The user can view their appointments in various calendar formats. Priority = High.
+## Calendar and Views
 
-**Functional Requirements:**
+### Description
 
-|                                                                                                                                                                                                                               |
-| :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **View.Calendar: Display calendar views**<br><br>.Display: The system shall display a user's appointments on a calendar interface. (UC-9)<br><br>.Modes: The calendar shall support Day, Week, and Month views. (UC-9, BR-13) |
-| **View.Agenda: Display agenda list**<br><br>.List: The system shall provide an Agenda view that lists upcoming appointments in chronological order. (UC-10, BR-13)                                                            |
+Users can review appointments through multiple calendar presentations. Priority = High.
 
-### 3.4 Reminders and Notifications
+### Functional Requirements
 
-**Description:**
-The system sends automated reminders to users for their upcoming appointments. Priority = High.
+| ID    | Requirement                                                                                      | Use Cases | Business Rules |
+| ----- | ------------------------------------------------------------------------------------------------ | --------- | -------------- |
+| FR-13 | The system shall display personal appointments in Day, Week, and Month calendar views.           | UC-9      | BR-13          |
+| FR-14 | The system shall provide an Agenda view that lists upcoming appointments in chronological order. | UC-10     | BR-13          |
 
-**Functional Requirements:**
+### Unified Calendar View
 
-|                                                                                                                                                                                                                                                                                                                   |
-| :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Reminder.Set: Set an appointment reminder**<br><br>.Add: The system shall allow a user to set one or more reminders for an appointment. (UC-15, BR-22)<br><br>.Time: The reminder time must be configured to occur before the appointment's start time. (UC-15, BR-21)                                          |
-| **Reminder.Trigger: Automated reminder triggering**<br><br>.Automate: The Scheduler Service shall automatically trigger a notification at the scheduled reminder time. (UC-20, BR-23)<br><br>.Log: The system shall log the triggered notification in the user's notification history. (UC-17, BR-25)             |
-| **Reminder.Action: User actions on reminders**<br><br>.Snooze: The system shall allow a user to "snooze" a received reminder notification, which will re-trigger it after a configured interval. (UC-16, BR-24)<br><br>.History: The system shall allow a user to view their notification history. (UC-17, BR-26) |
+The system shall provide a read-only unified calendar view that combines personal and team appointments for the authenticated user within a selected time range.
 
-### 3.5 Productivity Statistics
+| ID    | Requirement                                                                                                                                  | Use Cases | Business Rules                    |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------- | --------------------------------- |
+| FR-35 | The system shall provide an authenticated unified calendar view that aggregates personal and team appointments within a selected time range. | UC-35     | BR-68, BR-69, BR-70, BR-71, BR-72 |
 
-**Description:**
-Users can view analytics about their scheduled activities to gain insights into their time management. Priority = Medium.
+## Reminders and Notifications
 
-**Functional Requirements:**
+### Description
 
-|                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Stats.View: View statistics dashboard**<br><br>.Access: The system shall provide a statistics dashboard accessible only to authenticated users. (UC-18, BR-34)<br><br>.Calculate: The system shall calculate statistics based on appointments within a user-selected time frame. (UC-18, BR-15, BR-16)<br><br>.Metrics: The dashboard shall display metrics including the appointment completion rate and the most productive time slots. (UC-18, BR-17, BR-18) |
+The system sends appointment reminders and tracks reminder activity. Priority = High.
 
-## 4. Data Requirements
+### Functional Requirements
 
-### 4.1 Logical Data Model
+| ID    | Requirement                                                                                                                                          | Use Cases    | Business Rules |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | -------------- |
+| FR-15 | The system shall allow a user to configure one or more reminders for an appointment, with each reminder scheduled before the appointment start time. | UC-15        | BR-21, BR-22   |
+| FR-16 | The Scheduler Service shall trigger reminder notifications at the scheduled time and record the delivered notification.                              | UC-20        | BR-23, BR-25   |
+| FR-17 | The system shall allow a user to snooze a reminder and to view notification history.                                                                 | UC-16, UC-17 | BR-24, BR-26   |
 
-A logical data model will be developed to represent the relationships between key data entities, including Users, Appointments, Tags, and Reminders. An `Appointment` will have a many-to-one relationship with a `User`. `Appointments` and `Tags` will have a many-to-many relationship.
+## Productivity Statistics
 
-### 4.2 Data Dictionary
+### Description
 
-| Data Element    | Description                                             | Data Type    | Constraints                             |
-| :-------------- | :------------------------------------------------------ | :----------- | :-------------------------------------- |
-| User ID         | Unique identifier for a user account.                   | UUID         | Primary Key                             |
-| Email           | User's unique email address for login.                  | Varchar(255) | Unique, Not Null                        |
-| Password        | Hashed password for the user account.                   | Varchar(255) | Not Null                                |
-| Name            | Display name of the user.                               | Varchar(100) |                                         |
-| Appointment ID  | Unique identifier for an appointment.                   | UUID         | Primary Key                             |
-| Title           | The title or name of the appointment.                   | Varchar(255) | Not Null                                |
-| Start Time      | The date and time the appointment begins.               | Timestamp    | Not Null                                |
-| End Time        | The date and time the appointment ends.                 | Timestamp    | Must be after Start Time                |
-| Status          | The current status of the appointment.                  | Enum         | SCHEDULED, COMPLETED, CANCELLED, MISSED |
-| Recurrence Rule | A string defining the recurrence pattern (e.g., RRULE). | Varchar(255) |                                         |
-| Tag ID          | Unique identifier for a tag.                            | UUID         | Primary Key                             |
-| Tag Name        | The name of the tag (e.g., "Work", "Personal").         | Varchar(50)  | Unique per user                         |
-| Reminder ID     | Unique identifier for a reminder.                       | UUID         | Primary Key                             |
-| Reminder Time   | The date and time the reminder should be triggered.     | Timestamp    | Must be before appointment start time   |
+Users can view analytics about their scheduling habits. Priority = Medium.
 
-### 4.3 Reports
+### Functional Requirements
 
-The primary report in this system is the data export functionality.
+| ID         | Requirement                                                                                                                                                           | Use Cases | Business Rules                    |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | --------------------------------- |
+| FR-18      | The system shall provide an authenticated statistics dashboard that calculates results for a selected time range and shows completion rate and productive time slots. | UC-18     | BR-15, BR-16, BR-17, BR-18, BR-34 |
+| FR-STAT-02 | The system shall return time-series trend data for selected time range, grouped by day or week, showing total and completed appointments per bucket.                  | UC-18     | BR-15, BR-16, BR-17               |
 
-**Exported Appointment Data**
+## Team Management and Collaboration
 
-- **Report ID:** PSMS-RPT-1
-- **Report Title:** Appointment Data Export
-- **Purpose:** Allows a user to export their appointment data for backup or use in other applications.
-- **Users:** End User
-- **Data Sources:** User's appointment records.
-- **Format:** CSV
-- **Selection Criteria:** The export will reflect any active filters applied by the user (date range, tag, status).
-- **Data Fields:** Title, Start Time, End Time, Status, Tags, Description.
+### Description
 
-### 4.4 Data Integrity, Retention, and Disposal
+Users can create teams, manage membership, share calendars, coordinate team appointments, and resolve multi-user availability conflicts. Priority = High.
 
-DI-1: A user can only view and manage appointments that they created. (BR-5)
-DI-2: When a user account is deleted, all associated data, including appointments, tags, and reminders, must be permanently removed.
-DI-3: The system does not have a specific data retention policy beyond the life of the user's account. Data is retained as long as the account is active.
+### Functional Requirements
 
-## 5. External Interface Requirements
+| ID    | Requirement                                                                                                                                                                                             | Use Cases | Business Rules                                         |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------ |
+| FR-19 | The system shall allow an authenticated user to create a team and become the Team Owner by default.                                                                                                     | UC-21     | BR-37, BR-38, BR-39, BR-42                             |
+| FR-20 | The system shall allow a Team Owner or Team Admin to invite members to a team with target role limited to Team Admin or Team Member.                                                                    | UC-22     | BR-40, BR-41, BR-42, BR-57                             |
+| FR-21 | The system shall allow an active team member to leave a team, while enforcing ownership-transfer constraints when the member is the Team Owner.                                                         | UC-24     | BR-39, BR-43, BR-44                                    |
+| FR-22 | The system shall allow an authorized team role to create a non-recurring team appointment linked to a team, organizer, and required participants.                                                       | UC-25     | BR-45, BR-46, BR-47, BR-48, BR-49, BR-53, BR-52        |
+| FR-23 | The system shall allow an authorized team role to update a team appointment, including the participant list, and shall recheck permissions and conflicts after every edit.                              | UC-26     | BR-45, BR-46, BR-47, BR-48, BR-50, BR-52, BR-53, BR-56 |
+| FR-24 | The system shall allow an authorized team role to delete a team appointment.                                                                                                                            | UC-27     | BR-51, BR-56                                           |
+| FR-25 | The system shall display a shared team calendar only to active members of the selected team.                                                                                                            | UC-28     | BR-52, BR-55                                           |
+| FR-26 | The system shall display team appointment details with participants only to active members of the selected team.                                                                                        | UC-28     | BR-45, BR-52                                           |
+| FR-27 | The system shall validate participant availability against personal and team schedules before saving a team appointment.                                                                                | UC-30     | BR-53, BR-54, BR-64, BR-65                             |
+| FR-28 | The system shall return participant conflict details when one or more required participants overlap with another appointment.                                                                           | UC-30     | BR-52, BR-53                                           |
+| FR-29 | The system shall suggest common free time slots only in dedicated availability checks.                                                                                                                  | UC-30     | BR-54, BR-64                                           |
+| FR-30 | The system shall allow Team Owner or Team Admin to change member role only between Team Admin and Team Member and shall reject Team Owner assignment through role-change operations.                    | UC-23     | BR-40, BR-58, BR-59, BR-63                             |
+| FR-31 | The system shall allow only the invited user to accept or decline a pending team invitation.                                                                                                            | UC-31     | BR-60, BR-61                                           |
+| FR-32 | The system shall create an active Team Member record when a pending invitation is accepted and shall update invitation status by the defined lifecycle.                                                 | UC-31     | BR-60, BR-62                                           |
+| FR-33 | The system shall allow an authorized user to check team availability for a proposed time range and return available participants, busy participants, conflict details, and suggested common free slots. | UC-30     | BR-53, BR-54, BR-64, BR-65                             |
+| FR-34 | The system shall allow an authenticated user to retrieve all team invitations addressed to them, including invitation status and optional status filtering.                                             | UC-31     | BR-60, BR-61, BR-66, BR-67                             |
 
-### 5.1 User Interfaces
+# Data Requirements
 
-UI-1: The system shall provide a responsive and user-friendly web interface that is intuitive for non-technical users. (FE-9)
-UI-2: The system shall provide clear feedback to the user after any action, such as creating or updating an appointment.
-UI-3: The user interface shall be designed to be accessible, allowing for navigation and interaction via keyboard in addition to a mouse.
+## Logical Data Model
 
-### 5.2 Software Interfaces
+The logical data model shall include the following core entities and relationships:
 
-SI-1: The frontend (ReactJS) shall communicate with the backend (NestJS) via a RESTful API over HTTPS.
-SI-2: The system does not have any external software interfaces in the initial release.
+- User, with account, profile, authentication, and audit-related attributes.
+- Appointment, owned by one User and optionally linked to reminders, tags, recurrence, and participants.
+- Tag, with a many-to-many relationship to Appointment.
+- Reminder and Notification, representing scheduled reminder events and delivery history.
+- StatisticsReport, representing summary analytics for a selected time range.
+- Team, representing a collaborative scheduling group owned by one user.
+- TeamMember, representing membership and role assignment within a team.
+- TeamAppointment, representing a non-recurring calendar item shared within a team.
+- AppointmentParticipant, representing required and optional participants for a team appointment.
+- TeamInvitation, representing pending invitations to join a team.
 
-### 5.3 Hardware Interfaces
+## Data Dictionary
 
-No hardware interfaces have been identified.
+| Data Element            | Description               | Data Type / Composition                                                                                         | Constraints                                                                                            |
+| ----------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| user                    | Registered system account | user id, full name, email, password hash, avatar, status, created date                                          | Email unique; password hashed                                                                          |
+| appointment             | Personal appointment      | appointment id, owner id, title, description, start datetime, end datetime, location, status, recurrence fields | Owner required; time range valid                                                                       |
+| tag                     | Appointment label         | tag id, tag name, tag color, owner id                                                                           | Tag name unique per owner                                                                              |
+| reminder                | Scheduled reminder        | reminder id, appointment id, user id, reminder time, delivery status                                            | Reminder time before start time                                                                        |
+| notification            | Reminder history item     | notification id, user id, appointment id, message, sent datetime, read status                                   | System generated                                                                                       |
+| statistics report       | Analytics summary         | report id, user id, time range, completion rate, productive time slots                                          | Calculated from user data                                                                              |
+| team                    | Collaborative group       | team id, team name, description, owner id, status, created date                                                 | Team name unique within owner scope                                                                    |
+| team member             | Team membership record    | team id, user id, role, membership status, joined date                                                          | Exactly one Team Owner per team; role changes only between Team Admin and Team Member                  |
+| team appointment        | Shared team calendar item | appointment id, team id, organizer id, title, start datetime, end datetime, participants, status                | Non-recurring; organizer required; requires active team membership                                     |
+| appointment participant | Team participant link     | team appointment id, user id, participation type                                                                | participation type is REQUIRED or OPTIONAL; duplicate rows not allowed                                 |
+| team invitation         | Pending invite record     | invitation id, team id, invited user id, invited by, role, status, created date                                 | Role limited to Team Admin or Team Member; status lifecycle: PENDING to ACCEPTED, DECLINED, or EXPIRED |
 
-### 5.4 Communications Interfaces
+## Reports
 
-CI-1: The system shall provide in-app notifications for appointment reminders.
-CI-2: Future releases may include email notification integration for reminders and other system alerts.
+### Exported Appointment Data
 
-## 6. Quality Attributes
+| Report ID          | COS-RPT-1                                                                                      |
+| ------------------ | ---------------------------------------------------------------------------------------------- |
+| Report Title       | Appointment Data Export                                                                        |
+| Report Purpose     | Allows a user to export appointment data for backup or use in other applications.              |
+| Priority           | Medium                                                                                         |
+| Report Users       | End User                                                                                       |
+| Data Sources       | User appointment records                                                                       |
+| Format             | CSV                                                                                            |
+| Selection Criteria | Export reflects the active filters applied by the user, including date range, tag, and status. |
+| Data Fields        | Title, Start Time, End Time, Status, Tags, Description, Location                               |
 
-### 6.1 Usability Requirements
+## Data Integrity, Retention, and Disposal
 
-USE-1: At least 70% of registered users should actively use the system on a weekly basis within 3 months of release. (SM-1)
-USE-2: A new user should be able to create their first appointment within 2 minutes of their first login.
+DI-1: A user can only view and manage appointments, teams, and calendars that the current access rules permit.
 
-### 6.2 Performance Requirements
+DI-2: When a user account is deleted, all associated personal records shall be removed, subject to legal or administrative retention rules for audit logs.
 
-PER-1: The average system response time for creating, updating, or deleting an appointment shall be under 2 seconds under normal load. (SM-3)
-PER-2: The statistics dashboard shall load within 5 seconds for a user with up to one year of appointment data.
-PER-3: The system should support at least 100 concurrent users with no significant degradation in performance.
+DI-3: Team appointments shall preserve audit history for create, update, and delete actions.
 
-### 6.3 Security Requirements
+DI-4: The system shall maintain referential integrity between users, teams, memberships, appointments, reminders, and notifications.
 
-SEC-1: All user passwords must be securely hashed before being stored in the database. (BR-32)
-SEC-2: All network communication between the client and server must be encrypted using TLS/SSL. (BR-31)
-SEC-3: The system shall use JWT for authenticating API requests, and tokens must have a defined expiration time. (BR-3, BR-4)
-SEC-4: A user must only be able to access and manipulate their own data. (BR-5)
-SEC-5: The system shall log all authentication attempts for security auditing purposes. (BR-33)
+DI-5: Team ownership shall remain unique per team; Team Owner cannot be assigned via invitation or member role-change operations; team appointment participant links shall remain unique per appointment.
 
-### 6.4 Safety Requirements
+# External Interface Requirements
 
-No safety requirements have been identified as the system does not control any physical hardware or pose a risk to human life.
+## User Interfaces
 
-### 6.5 Availability Requirements
+UI-1: The system shall provide a responsive web interface that supports both individual scheduling and team collaboration workflows.
 
-AVL-1: The system is intended for individual use and does not have a strict availability requirement, but it should strive for 99% uptime, excluding planned maintenance.
+UI-2: The interface shall provide clear success, validation, and conflict messages for appointment and team actions.
 
-### 6.6 Robustness Requirements
+UI-3: The interface shall support keyboard navigation and accessible form controls.
 
-ROB-1: If the user loses internet connectivity while creating or editing an appointment, the system should attempt to save the draft locally and allow the user to resume when connectivity is restored.
-ROB-2: In case of an error during a database transaction (e.g., creating a recurring appointment series), the transaction should be rolled back to prevent partial data from being saved.
+## Software Interfaces
 
-## Appendix A: Analysis Models
+SI-1: The NextJS frontend shall communicate with the NestJS backend through a RESTful API over HTTPS.
 
-Analysis models, such as state-transition diagrams for appointment status or sequence diagrams for key interactions, will be created during the design phase to further clarify the system's behavior.
+SI-2: The system shall persist data in PostgreSQL.
+
+SI-3: The system shall use JWT-based authentication for protected API requests.
+
+## Hardware Interfaces
+
+No dedicated hardware interfaces are required for release 1.0.
+
+## Communications Interfaces
+
+CI-1: The system shall deliver in-app reminder notifications and collaboration notifications.
+
+CI-2: Future releases may include email-based notification delivery.
+
+# Quality Attributes
+
+## Usability Requirements
+
+USE-1: At least 70% of registered users should actively use the system weekly within 3 months of release.
+
+USE-2: A new user should be able to create a first personal appointment within 2 minutes of first login.
+
+USE-3: A team owner should be able to create a team and send the first invitation within 3 minutes of starting the workflow.
+
+## Performance Requirements
+
+PER-1: Core personal appointment operations shall respond within 2 seconds under normal load.
+
+PER-2: Team appointment save operations and dedicated availability checks, including multi-user conflict checks, shall respond within 3 seconds under normal load.
+
+PER-3: The statistics dashboard shall load within 5 seconds for up to one year of user data.
+
+PER-4: The system should support at least 100 concurrent users without significant degradation.
+
+## Security Requirements
+
+SEC-1: User passwords shall be securely hashed before storage.
+
+SEC-2: All network communication between client and server shall use TLS/SSL.
+
+SEC-3: The system shall use JWT for authenticating API requests and shall enforce token expiration.
+
+SEC-4: A user shall only be able to access records allowed by ownership, membership, or role-based access rules.
+
+SEC-5: The system shall log authentication attempts and team appointment changes for security auditing.
+
+## Safety Requirements
+
+No safety requirements have been identified because the system does not control physical equipment.
+
+## Availability Requirements
+
+AVL-1: The system should strive for 99% uptime, excluding planned maintenance windows.
+
+AVL-2: Team calendar access shall remain available to active members whenever the service is operational.
+
+## Robustness Requirements
+
+ROB-1: If connectivity is lost during appointment or team appointment editing, the system should prevent silent data loss and preserve the user’s in-progress changes where feasible.
+
+ROB-2: Database transaction failures shall roll back partial writes to prevent inconsistent scheduling data.
+
+# Appendix A: Analysis Models
+
+Analysis models, such as state-transition diagrams for appointment status and sequence diagrams for team appointment coordination, will be produced during design and implementation.
