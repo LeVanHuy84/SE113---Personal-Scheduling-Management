@@ -1,0 +1,17 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: psms-redis
+    ports:
+      - '6379:6379'
+    networks:
+      - psms-network
+    volumes:
+      - redis-data:/data
+
+networks:
+  psms-network:
+
+volumes:
+  redis-data:
+    driver: local

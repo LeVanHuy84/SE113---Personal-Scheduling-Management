@@ -15,6 +15,8 @@ import { StatisticsModule } from './statistics/statistics.module';
 import { UserModule } from './user/user.module';
 import { TagModule } from './tag/tag.module';
 import { AppointmentSeriesModule } from './appointment-series/series.module';
+import { TeamModule } from './team/team.module';
+import { TeamAppointmentModule } from './team-appointment/team-appointment.module';
 
 @Module({
   imports: [
@@ -37,6 +39,8 @@ import { AppointmentSeriesModule } from './appointment-series/series.module';
     AppointmentModule,
     TagModule,
     UserModule,
+    TeamModule,
+    TeamAppointmentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -60,6 +60,31 @@ enum NotificationType {
   SYSTEM
 }
 
+enum TeamRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INACTIVE
+  INVITED
+  DECLINED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum ParticipationType {
+  REQUIRED
+  OPTIONAL
+}
+
 model User {
   id                     String              @id @default(uuid()) @db.Uuid
   email                  String              @unique @db.VarChar(255)
@@ -80,8 +105,102 @@ model User {
   authAttempts           AuthAttempt[]
   monthlyStats           UserMonthlyStat[]
   userDevices            UserDevice[]
+  teamsOwned             Team[]              @relation("TeamOwner")
+  teamMemberships        TeamMember[]
+  organizedTeamAppointments TeamAppointment[] @relation("TeamAppointmentOrganizer")
+  appointmentParticipants AppointmentParticipant[]
+  invitationsReceived    TeamInvitation[]    @relation("TeamInvitationInvitedUser")
+  invitationsSent        TeamInvitation[]    @relation("TeamInvitationInvitedBy")
 
   @@map("users")
+}
+
+model Team {
+  id          String           @id @default(uuid()) @db.Uuid
+  ownerId     String           @map("owner_id") @db.Uuid
+  name        String           @db.VarChar(120)
+  description String?
+  status      MembershipStatus @default(ACTIVE)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  owner       User             @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members     TeamMember[]
+  invitations TeamInvitation[]
+  appointments TeamAppointment[]
+
+  @@unique([ownerId, name])
+  @@index([ownerId])
+  @@map("teams")
+}
+
+model TeamMember {
+  teamId    String           @map("team_id") @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  role      TeamRole         @default(MEMBER)
+  status    MembershipStatus @default(ACTIVE)
+  joinedAt  DateTime         @default(now()) @map("joined_at") @db.Timestamptz(6)
+  updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, userId])
+  @@index([userId])
+  @@map("team_members")
+}
+
+model TeamInvitation {
+  id            String           @id @default(uuid()) @db.Uuid
+  teamId        String           @map("team_id") @db.Uuid
+  invitedUserId String           @map("invited_user_id") @db.Uuid
+  invitedById   String           @map("invited_by_id") @db.Uuid
+  role          TeamRole         @default(MEMBER)
+  status        InvitationStatus @default(PENDING)
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  respondedAt   DateTime?        @map("responded_at") @db.Timestamptz(6)
+  expiresAt     DateTime?        @map("expires_at") @db.Timestamptz(6)
+
+  team       Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  invitedUser User @relation("TeamInvitationInvitedUser", fields: [invitedUserId], references: [id], onDelete: Cascade)
+  invitedBy   User @relation("TeamInvitationInvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, invitedUserId, status])
+  @@index([teamId])
+  @@index([invitedUserId])
+  @@map("team_invitations")
+}
+
+model TeamAppointment {
+  id          String            @id @default(uuid()) @db.Uuid
+  teamId      String            @map("team_id") @db.Uuid
+  organizerId String            @map("organizer_id") @db.Uuid
+  title       String            @db.VarChar(255)
+  description String?
+  location    String?           @db.VarChar(255)
+  startAt     DateTime          @map("starts_at") @db.Timestamptz(6)
+  endAt       DateTime          @map("ends_at") @db.Timestamptz(6)
+  status      AppointmentStatus @default(SCHEDULED)
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  team         Team                     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  organizer    User                     @relation("TeamAppointmentOrganizer", fields: [organizerId], references: [id], onDelete: Restrict)
+  participants AppointmentParticipant[]
+
+  @@map("team_appointments")
+}
+
+model AppointmentParticipant {
+  teamAppointmentId String   @map("team_appointment_id") @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  participationType ParticipationType @map("participation_type")
+
+  teamAppointment TeamAppointment @relation(fields: [teamAppointmentId], references: [id], onDelete: Cascade)
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([teamAppointmentId, userId])
+  @@map("appointment_participants")
 }
 
 model UserDevice {
