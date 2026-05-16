@@ -23,6 +23,8 @@ import {
 } from './dto/team-appointment-response.dto';
 import { UpdateTeamAppointmentRequestDto } from './dto/update-team-appointment-request.dto';
 import { TeamAppointmentRepository } from './team-appointment.repository';
+import { NotificationService } from 'src/notification/notification.service';
+import { NotificationType, NotificationEventType } from '@prisma/client';
 
 type ConflictWith = 'PERSONAL_APPOINTMENT' | 'TEAM_APPOINTMENT';
 
@@ -44,6 +46,7 @@ type ParticipantProfile = {
 export class TeamAppointmentService {
   constructor(
     private readonly teamAppointmentRepository: TeamAppointmentRepository,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async createTeamAppointment(
@@ -89,6 +92,32 @@ export class TeamAppointmentService {
       endAt,
       participantUserIds: createParticipants.participantUserIds,
     });
+
+    // Fan-out notifications to participants (exclude organizer)
+    const participantUserIds = created.participants
+      .map((p) => p.userId)
+      .filter((id) => id !== userId);
+    if (participantUserIds.length > 0) {
+      const notifyPromises = participantUserIds.map((uid) =>
+        this.notificationService.sendAndCreateNotification({
+          userId: uid,
+          actorUserId: userId,
+          type: NotificationType.TEAM_ACTIVITY,
+          eventType: NotificationEventType.TEAM_APPOINTMENT_CREATED,
+          teamAppointmentId: created.id,
+          title: `New team appointment: ${created.title}`,
+          body: `${created.title} scheduled by ${userId}`,
+          payload: { teamId: created.teamId },
+        }),
+      );
+      Promise.allSettled(notifyPromises).then((results) => {
+        results.forEach((r, i) => {
+          if (r.status === 'rejected') {
+            // swallow errors for now
+          }
+        });
+      });
+    }
 
     return this.toResponseDto(
       created,
@@ -203,6 +232,25 @@ export class TeamAppointmentService {
       status: dto.status ?? existing.status,
       participantUserIds: allParticipantUserIds,
     });
+    // notify participants except actor
+    const participantsToNotify = updated.participants
+      .map((p) => p.userId)
+      .filter((id) => id !== userId);
+    if (participantsToNotify.length > 0) {
+      const notifyPromises = participantsToNotify.map((uid) =>
+        this.notificationService.sendAndCreateNotification({
+          userId: uid,
+          actorUserId: userId,
+          type: NotificationType.TEAM_ACTIVITY,
+          eventType: NotificationEventType.TEAM_APPOINTMENT_UPDATED,
+          teamAppointmentId: updated.id,
+          title: `Updated team appointment: ${updated.title}`,
+          body: `${updated.title} was updated by ${userId}`,
+          payload: { teamId: updated.teamId },
+        }),
+      );
+      Promise.allSettled(notifyPromises);
+    }
 
     return this.toResponseDto(
       updated,
@@ -244,6 +292,26 @@ export class TeamAppointmentService {
       throw new ForbiddenException(
         'Only OWNER, ADMIN, or organizer can delete this appointment',
       );
+    }
+
+    // notify participants (except actor) about deletion
+    const participantsToNotify = existing.participants
+      .map((p) => p.userId)
+      .filter((id) => id !== userId);
+    if (participantsToNotify.length > 0) {
+      const notifyPromises = participantsToNotify.map((uid) =>
+        this.notificationService.sendAndCreateNotification({
+          userId: uid,
+          actorUserId: userId,
+          type: NotificationType.TEAM_ACTIVITY,
+          eventType: NotificationEventType.TEAM_APPOINTMENT_CANCELLED,
+          teamAppointmentId: appointmentId,
+          title: `Cancelled team appointment: ${existing.title}`,
+          body: `${existing.title} was cancelled by ${userId}`,
+          payload: { teamId: existing.teamId },
+        }),
+      );
+      Promise.allSettled(notifyPromises);
     }
 
     await this.teamAppointmentRepository.deleteTeamAppointment(appointmentId);

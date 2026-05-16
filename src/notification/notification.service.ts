@@ -1,9 +1,9 @@
-import { Injectable } from "@nestjs/common";
-import { NotificationType } from "@prisma/client";
-import { UserDeviceService } from "src/device/user-device.service";
-import { FirebaseService } from "src/firebase/firebase.service";
-import { PrismaService } from "src/prisma/prisma.service";
-import { UserService } from "src/user/user.service";
+import { Injectable } from '@nestjs/common';
+import { NotificationType, NotificationEventType } from '@prisma/client';
+import { UserDeviceService } from 'src/device/user-device.service';
+import { FirebaseService } from 'src/firebase/firebase.service';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class NotificationService {
@@ -11,52 +11,78 @@ export class NotificationService {
     private prisma: PrismaService,
     private firebaseService: FirebaseService,
     private userDeviceService: UserDeviceService,
-  ) { }
+  ) {}
 
   async sendAndCreateNotification(input: {
-    appointment: {
-      id: string;
-      userId: string;
-      startAt: Date;
-    };
-    title: string;
+    userId: string;
+    actorUserId?: string;
+    appointmentId?: string;
+    teamInvitationId?: string;
+    teamAppointmentId?: string;
+    type: NotificationType;
+    eventType?: NotificationEventType;
+    title?: string;
     body: string;
-    type: string;
-    data?: Record<string, string>;
+    payload?: any;
+    pushData?: Record<string, string>;
   }) {
-    const { appointment } = input;
+    const {
+      userId,
+      actorUserId,
+      appointmentId,
+      teamInvitationId,
+      teamAppointmentId,
+      type,
+      eventType,
+      title,
+      body,
+      payload,
+      pushData,
+    } = input;
 
-    // 1. Lấy tokens
-    const devices = await this.userDeviceService.getUserDevices(
-      appointment.userId,
-    );
+    // 1. get user devices
+    const devices = await this.userDeviceService.getUserDevices(userId);
+    const tokens = devices.map((d) => d.fcmToken).filter(Boolean);
 
-    const tokens = devices.map((d) => d.fcmToken);
+    const pushPayload = {
+      appointmentId,
+      teamInvitationId,
+      teamAppointmentId,
+      ...pushData,
+    } as Record<string, string>;
 
-    const notificationData = {
-      appointmentId: appointment.id,
-      ...input.data,
-    };
+    // 2. push + persist
+    const ops = [] as Promise<any>[];
 
-    // 2. chạy song song (push + DB)
-    await Promise.all([
-      this.firebaseService.sendToDevices({
-        tokens,
-        title: input.title,
-        body: input.body,
-        data: notificationData,
-      }),
+    if (tokens.length > 0) {
+      ops.push(
+        this.firebaseService.sendToDevices({
+          tokens,
+          title: title ?? 'Notification',
+          body,
+          data: pushPayload,
+        }),
+      );
+    }
 
+    ops.push(
       this.prisma.notification.create({
         data: {
-          userId: appointment.userId,
-          appointmentId: appointment.id,
-          type: NotificationType.REMINDER,
-          message: input.body,
-          triggeredAt: appointment.startAt,
+          userId,
+          actorUserId: actorUserId ?? undefined,
+          appointmentId: appointmentId ?? undefined,
+          teamInvitationId: teamInvitationId ?? undefined,
+          teamAppointmentId: teamAppointmentId ?? undefined,
+          type,
+          eventType: eventType ?? undefined,
+          title: title ?? null,
+          message: body,
+          payload: payload ?? undefined,
         },
       }),
-    ]);
+    );
+
+    await Promise.all(ops);
   }
 
   async getMyNotifications(userId: string) {
