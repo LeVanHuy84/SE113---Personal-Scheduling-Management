@@ -5,7 +5,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, TeamRole, InvitationStatus } from '@prisma/client';
+import {
+  Prisma,
+  TeamRole,
+  InvitationStatus,
+  NotificationType,
+  NotificationEventType,
+} from '@prisma/client';
 import { ChangeMemberRoleRequestDto } from './dto/change-member-role-request.dto';
 import { CreateTeamInvitationRequestDto } from './dto/create-team-invitation-request.dto';
 import { CreateTeamRequestDto } from './dto/create-team-request.dto';
@@ -195,17 +201,14 @@ export class TeamService {
 
       // Send notification to invited user
       await this.notificationService.sendAndCreateNotification({
-        appointment: {
-          id: team.id,
-          userId: dto.invitedUserId,
-          startAt: new Date(),
-        },
+        userId: dto.invitedUserId,
+        actorUserId: userId,
+        type: NotificationType.TEAM_INVITATION,
+        eventType: NotificationEventType.TEAM_INVITE_CREATED,
+        teamInvitationId: invitation.id,
         title: 'Team Invitation',
         body: `You have been invited to team ${team.name}`,
-        type: 'SYSTEM',
-        data: {
-          teamId: team.id,
-        },
+        payload: { teamId: team.id },
       });
 
       return invitation;

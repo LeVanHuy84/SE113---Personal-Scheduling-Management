@@ -49,7 +49,7 @@ Each feature should have its own file:
 ```
 docs/api-contract/appointment.api.md
 docs/api-contract/reminder.api.md
-docs/api-contract/recurring.api.md
+docs/api-contract/appointment-series.api.md
 ```
 
 ---
