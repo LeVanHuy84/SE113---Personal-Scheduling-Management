@@ -73,7 +73,7 @@
 ### Endpoint
 
 - Method: GET
-- URL: /export
+- URL: /statistics/export
 - Description: Export user appointment data as CSV with applied filters.
 
 ### Request DTO

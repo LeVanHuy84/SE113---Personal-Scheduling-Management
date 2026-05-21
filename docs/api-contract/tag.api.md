@@ -78,11 +78,11 @@
 
 - 401 Unauthorized: missing or invalid JWT.
 
-## Endpoint 3: Rename/Update Tag
+## Endpoint 3: Update Tag
 
 ### Endpoint
 
-- Method: PUT
+- Method: PATCH
 - URL: /tags/:id
 - Description: Update tag name or color.
 
@@ -161,43 +161,21 @@
 - 401 Unauthorized: missing or invalid JWT.
 - 404 Not Found: tag not found for user.
 
-## Endpoint 5: Assign Tag to Appointment
+## ⚠️ Deprecated Endpoints
 
-### Endpoint
+The following endpoint has been **removed** from implementation:
 
-- Method: POST
-- URL: /appointments/:id/tags
-- Description: Assign one or more existing user tags to an appointment.
+- ~~POST /appointments/:id/tags~~ → Tag assignment should be managed via series-level tag operations
 
-### Request DTO
+## Self Review
 
-#### AssignTagToAppointmentParamsDto
-
-| Field | Type        | Required | Validation             |
-| ----- | ----------- | -------- | ---------------------- |
-| id    | uuid string | Yes      | valid appointment UUID |
-
-#### AssignTagToAppointmentRequestDto
-
-| Field  | Type          | Required | Validation                                       |
-| ------ | ------------- | -------- | ------------------------------------------------ |
-| tagIds | uuid string[] | Yes      | min size 1; each tag must belong to current user |
-
-### Response DTO
-
-#### AppointmentTagAssignmentResponseDto
-
-| Field         | Type          | Description                   |
-| ------------- | ------------- | ----------------------------- |
-| appointmentId | uuid string   | Appointment identifier        |
-| tagIds        | uuid string[] | Assigned tag ids              |
-| assignedCount | number        | Number of assignments applied |
-
-### Business Rules Mapping
-
-- BR-19: user-defined tag assignment.
-- BR-20: appointment supports multiple tags.
-- BR-5: user can assign only to own appointments and own tags.
+- Tag management use-cases UC-14 and search UC-13 are covered (tag creation, listing, update, deletion).
+- PATCH method used for tag updates (instead of PUT).
+- Deprecated endpoints clearly marked.
+- No duplicated endpoints in this feature contract.
+- Validation constraints map to business rules.
+- Naming convention is consistent.
+- No internal-only database fields are exposed.
 
 ### Error Cases
 

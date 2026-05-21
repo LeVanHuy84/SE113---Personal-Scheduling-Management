@@ -16,7 +16,7 @@
 ### Endpoint
 
 - Method: GET
-- URL: /notifications
+- URL: /users/me/notifications
 - Description: Retrieve notification history for current user.
 
 ### Request DTO
@@ -67,12 +67,12 @@
 - 400 Bad Request: invalid query parameters.
 - 401 Unauthorized: missing or invalid JWT.
 
-## Endpoint 2: Mark Notification as Read
+## Endpoint 2: Mark Single Notification as Read
 
 ### Endpoint
 
 - Method: PATCH
-- URL: /notifications/:id/read
+- URL: /users/me/notifications/:id
 - Description: Mark one notification as read for current user.
 
 ### Request DTO
@@ -104,7 +104,37 @@
 - 401 Unauthorized: missing or invalid JWT.
 - 404 Not Found: notification not found for user.
 
-## Internal Producer Contract (Non-public API)
+## Endpoint 3: Mark All Notifications as Read
+
+### Endpoint
+
+- Method: PATCH
+- URL: /users/me/notifications/all
+- Description: Mark all notifications as read for current user.
+
+### Request DTO
+
+- None.
+
+### Response DTO
+
+#### MarkAllNotificationsReadResponseDto
+
+| Field   | Type   | Description            |
+| ------- | ------ | ---------------------- |
+| success | boolean | Operation status      |
+| count   | number | Number of marked read |
+
+### Business Rules Mapping
+
+- BR-26: notification history is user-manageable (read state).
+- BR-5: only owner can mark read.
+
+### Error Cases
+
+- 401 Unauthorized: missing or invalid JWT.
+
+## Endpoint 4: Internal Producer Contract (Non-public API)
 
 ### Operation
 
@@ -144,6 +174,8 @@
 
 - RETRYABLE: transient database write failure.
 - NON_RETRYABLE: invalid foreign-key linkage to user/reminder.
+
+## Endpoint 5: Internal Producer Contract (Non-public API)
 
 ## Self Review
 

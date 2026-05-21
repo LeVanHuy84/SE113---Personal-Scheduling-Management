@@ -1,153 +1,180 @@
-# API Contract: Recurring
+# API Contract: Appointment Series (Recurring & One-time)
 
 ## Feature
 
-- Name: recurring
-- Primary module: Recurring
+- Name: recurring / appointment-series
+- Primary module: AppointmentSeries
 - Related entities: AppointmentSeries, Appointment
 
 ## Related Use-cases
 
+- UC-6: Create appointment (single via ONETIME series)
 - UC-11: Manage recurring appointments
-- UC-7: Update appointment (recurring scope)
-- UC-8: Delete appointment (recurring scope)
+- UC-7: Update appointment (series scope)
+- UC-8: Delete appointment (series scope)
 
-## Endpoint 1: Create Recurring Appointment Series
+## Overview
+
+All appointment creation (both single and recurring) is now handled through the **Series API** (`/series`).
+- Single appointments are created with `recurrenceType: ONETIME`
+- Recurring appointments use `recurrenceType: DAILY|WEEKLY|MONTHLY|YEARLY`
+
+The system automatically generates individual appointment instances from the series pattern using queue-based expansion.
+
+## Endpoint 1: Create Appointment Series
 
 ### Endpoint
 
 - Method: POST
-- URL: /appointments
-- Description: Create appointment with recurrence rule and generate linked instances.
+- URL: /series
+- Description: Create appointment series and generate linked instances. For single appointments, use `recurrenceType: ONETIME`.
 
 ### Request DTO
 
-#### CreateRecurringAppointmentRequestDto
+#### CreateAppointmentSeriesRequestDto
 
 | Field           | Type                | Required | Validation                                                            |
 | --------------- | ------------------- | -------- | --------------------------------------------------------------------- |
 | title           | string              | Yes      | min length 1; max length 255                                          |
 | description     | string              | No       | max length 5000                                                       |
-| startTime       | ISO datetime string | Yes      | must be before endTime (BR-6); must not be in the past (BR-7)         |
-| endTime         | ISO datetime string | Yes      | must be after startTime (BR-6)                                        |
-| recurrenceRule  | string              | Yes      | valid daily/weekly/monthly pattern only (BR-9)                        |
-| seriesTimezone  | string              | Yes      | valid IANA timezone; max length 64                                    |
-| recurrenceCount | number              | No       | integer > 0; if provided, generated instances must be <= 50 (Phase 4) |
-| recurrenceUntil | ISO datetime string | No       | must be after startTime; mutually exclusive with recurrenceCount      |
+| startAt         | ISO datetime string | Yes      | must be before endAt (BR-6); must not be in the past (BR-7)           |
+| endAt           | ISO datetime string | Yes      | must be after startAt (BR-6)                                          |
+| recurrenceType  | enum                | Yes      | ONETIME, DAILY, WEEKLY, MONTHLY, YEARLY (BR-9)                        |
+| weeklyDay       | Weekday[]           | No       | required for WEEKLY recurrence                                        |
+| monthlyDay      | number              | No       | required for MONTHLY (1-31)                                           |
+| yearlyDay       | number              | No       | required for YEARLY (1-31)                                            |
+| yearlyMonth     | number              | No       | required for YEARLY (1-12)                                            |
+| seriesTimezone  | string              | No       | IANA timezone; default UTC                                            |
+| tagIds          | uuid string[]       | No       | tags to assign to generated appointments                              |
 
 ### Response DTO
 
-#### RecurringAppointmentSeriesResponseDto
+#### AppointmentSeriesResponseDto
 
-| Field          | Type                              | Description                     |
-| -------------- | --------------------------------- | ------------------------------- |
-| seriesId       | uuid string                       | Recurring series identifier     |
-| recurrenceRule | string                            | Persisted recurrence rule       |
-| generatedCount | number                            | Number of generated instances   |
-| items          | RecurringAppointmentInstanceDto[] | Generated appointment instances |
-
-#### RecurringAppointmentInstanceDto
-
-| Field     | Type                | Description                             |
-| --------- | ------------------- | --------------------------------------- |
-| id        | uuid string         | Appointment instance id                 |
-| seriesId  | uuid string         | Parent series id                        |
-| title     | string              | Inherited title                         |
-| startTime | ISO datetime string | Instance start time                     |
-| endTime   | ISO datetime string | Instance end time                       |
-| status    | enum                | SCHEDULED, COMPLETED, CANCELLED, MISSED |
+| Field          | Type                | Description                     |
+| -------------- | ------------------- | ------------------------------- |
+| id             | uuid string         | Series identifier               |
+| title          | string              | Series title                    |
+| description    | string nullable     | Series description              |
+| recurrenceType | enum                | ONETIME, DAILY, WEEKLY, etc.    |
+| startAt        | ISO datetime string | Base start time                 |
+| endAt          | ISO datetime string | Base end time                   |
+| createdAt      | ISO datetime string | Series creation timestamp       |
+| updatedAt      | ISO datetime string | Last update timestamp           |
 
 ### Business Rules Mapping
 
-- BR-6, BR-7: base appointment time validation.
-- BR-8: conflict check applied to all generated instances.
-- BR-9: recurrence pattern must be valid (daily, weekly, monthly).
+- BR-5: series belongs to authenticated user.
+- BR-6: startAt must be earlier than endAt.
+- BR-7: cannot create in the past.
+- BR-8: overlap prevented with same-user existing appointments.
+- BR-9: recurrence type must be valid.
 - BR-10: generated instances inherit base appointment properties.
 - Phase 4 rule: maximum 50 generated instances.
 
 ### Error Cases
 
-- 400 Bad Request: invalid recurrence rule or invalid end condition.
+- 400 Bad Request: invalid recurrence pattern, time range, or malformed payload.
 - 401 Unauthorized: missing or invalid JWT.
 - 409 Conflict: one or more generated instances overlap existing appointments.
-- 422 Unprocessable Entity: instance generation exceeds max 50.
+- 422 Unprocessable Entity: instance generation exceeds max 50 or invalid recurrence config.
 
-## Endpoint 2: Configure or Replace Recurrence for Existing Appointment
+## Endpoint 2: Get Appointment Series List
 
 ### Endpoint
 
-- Method: POST
-- URL: /appointments/:id/recurrence
-- Description: Attach or replace recurrence rule for an existing appointment and generate series instances.
+- Method: GET
+- URL: /series?page={page}&limit={limit}
+- Description: Retrieve paginated appointment series for authenticated user.
 
 ### Request DTO
 
-#### ConfigureRecurrenceParamsDto
+#### GetAppointmentSeriesQueryDto
 
-| Field | Type        | Required | Validation             |
-| ----- | ----------- | -------- | ---------------------- |
-| id    | uuid string | Yes      | valid appointment UUID |
-
-#### ConfigureRecurrenceRequestDto
-
-| Field           | Type                | Required | Validation                                |
-| --------------- | ------------------- | -------- | ----------------------------------------- |
-| recurrenceRule  | string              | Yes      | valid daily/weekly/monthly pattern (BR-9) |
-| seriesTimezone  | string              | Yes      | valid IANA timezone                       |
-| recurrenceCount | number              | No       | integer > 0 and <= 50 generated instances |
-| recurrenceUntil | ISO datetime string | No       | after base appointment startTime          |
+| Field | Type   | Required | Validation                            |
+| ----- | ------ | -------- | ------------------------------------- |
+| page  | number | No       | integer >= 1; default 1               |
+| limit | number | No       | integer between 1 and 100; default 10 |
 
 ### Response DTO
 
-#### ConfigureRecurrenceResponseDto
+#### AppointmentSeriesListResponseDto
 
-| Field          | Type                | Description                   |
-| -------------- | ------------------- | ----------------------------- |
-| seriesId       | uuid string         | Recurrence series id          |
-| generatedCount | number              | Number of generated instances |
-| updatedAt      | ISO datetime string | Configuration timestamp       |
+| Field | Type                          | Description                |
+| ----- | ----------------------------- | -------------------------- |
+| items | AppointmentSeriesResponseDto[]| Page data                  |
+| page  | number                        | Current page               |
+| limit | number                        | Page size                  |
+| total | number                        | Total series for user      |
 
 ### Business Rules Mapping
 
-- BR-5: only owner can configure recurrence.
-- BR-9: recurrence rule validity enforced.
-- BR-10: generated instances inherit base fields.
-- BR-8: conflict detection across generated instances.
+- BR-5: only series belonging to requesting user are returned.
 
 ### Error Cases
 
-- 400 Bad Request: invalid recurrence configuration.
+- 400 Bad Request: invalid pagination params.
 - 401 Unauthorized: missing or invalid JWT.
-- 404 Not Found: base appointment not found for user.
-- 409 Conflict: generated instances overlap existing schedule.
 
-## Endpoint 3: Update Recurring Appointment Scope
+## Endpoint 3: Update Appointment Series
 
 ### Endpoint
 
-- Method: PUT
-- URL: /appointments/:id?scope=single|series
-- Description: Update a recurring appointment instance only or whole series.
+- Method: PATCH
+- URL: /series/:id
+- Description: Update series configuration and regenerate instances.
 
 ### Request DTO
 
-#### UpdateRecurringAppointmentParamsDto
+#### UpdateAppointmentSeriesRequestDto
 
-| Field | Type        | Required | Validation             |
-| ----- | ----------- | -------- | ---------------------- |
-| id    | uuid string | Yes      | valid appointment UUID |
+| Field           | Type                | Required | Validation                          |
+| --------------- | ------------------- | -------- | ----------------------------------- |
+| title           | string              | No       | min length 1; max length 255        |
+| description     | string              | No       | max length 5000                     |
+| startAt         | ISO datetime string | No       | if provided, must be before endAt   |
+| endAt           | ISO datetime string | No       | if provided, must be after startAt  |
+| recurrenceType  | enum                | No       | if changing recurrence pattern      |
+| weeklyDay       | Weekday[]           | No       | for WEEKLY updates                  |
+| monthlyDay      | number              | No       | for MONTHLY updates                 |
+| yearlyDay       | number              | No       | for YEARLY updates                  |
+| yearlyMonth     | number              | No       | for YEARLY updates                  |
 
-#### UpdateRecurringAppointmentQueryDto
+### Response DTO
 
-| Field | Type        | Required | Validation               |
-| ----- | ----------- | -------- | ------------------------ |
-| scope | enum string | Yes      | single or series (BR-12) |
+#### AppointmentSeriesResponseDto
 
-#### UpdateRecurringAppointmentRequestDto
+| Field          | Type                | Description             |
+| -------------- | ------------------- | ----------------------- |
+| id             | uuid string         | Series identifier       |
+| title          | string              | Updated title           |
+| description    | string nullable     | Updated description     |
+| recurrenceType | enum                | Updated recurrence type |
+| startAt        | ISO datetime string | Updated start time      |
+| endAt          | ISO datetime string | Updated end time        |
+| updatedAt      | ISO datetime string | Update timestamp        |
 
-| Field       | Type                | Required | Validation                     |
-| ----------- | ------------------- | -------- | ------------------------------ |
-| title       | string              | No       | max length 255                 |
+### Business Rules Mapping
+
+- BR-5: only series owner can update.
+- BR-6, BR-7: time validation enforced.
+- BR-8: overlap checked against other appointments.
+- BR-9: recurrence validity enforced.
+
+### Error Cases
+
+- 400 Bad Request: invalid payload or recurrence config.
+- 401 Unauthorized: missing or invalid JWT.
+- 404 Not Found: series not found for user.
+- 409 Conflict: update results in overlapping appointments.
+
+## Endpoint 4: Delete Appointment Series
+
+### Endpoint
+
+- Method: DELETE
+- URL: /series/:id
+- Description: Delete appointment series and all associated instances.
 | description | string              | No       | max length 5000                |
 | startTime   | ISO datetime string | No       | if changed, start < end (BR-6) |
 | endTime     | ISO datetime string | No       | if changed, end > start (BR-6) |
@@ -191,37 +218,38 @@
 | ----- | ----------- | -------- | ---------------------- |
 | id    | uuid string | Yes      | valid appointment UUID |
 
-#### DeleteRecurringAppointmentQueryDto
+### Request DTO
 
-| Field | Type        | Required | Validation               |
-| ----- | ----------- | -------- | ------------------------ |
-| scope | enum string | Yes      | single or series (BR-12) |
+#### DeleteAppointmentSeriesParamsDto
+
+| Field | Type        | Required | Validation             |
+| ----- | ----------- | -------- | ---------------------- |
+| id    | uuid string | Yes      | valid series UUID      |
 
 ### Response DTO
 
-#### DeleteRecurringAppointmentResponseDto
+#### DeleteAppointmentSeriesResponseDto
 
-| Field        | Type    | Description            |
-| ------------ | ------- | ---------------------- |
-| scope        | string  | single or series       |
-| deletedCount | number  | Number of deleted rows |
-| success      | boolean | Deletion result        |
+| Field   | Type   | Description        |
+| ------- | ------ | ------------------- |
+| message | string | Deletion status     |
+| success | boolean | Deletion result    |
 
 ### Business Rules Mapping
 
-- BR-12: delete supports single instance or full series.
 - BR-5: owner-only delete.
+- BR-12: series deletion removes all generated instances.
 
 ### Error Cases
 
-- 400 Bad Request: invalid id or scope.
+- 400 Bad Request: invalid id.
 - 401 Unauthorized: missing or invalid JWT.
-- 404 Not Found: appointment/series not found for user.
+- 404 Not Found: series not found for user.
 
 ## Self Review
 
-- Recurring-related use-cases UC-11 plus recurring scope in UC-7 and UC-8 are covered.
-- No duplicated endpoint definitions inside this feature beyond explicit scope variants.
-- Validation includes rule validity, max instance limits, conflict checks, and scope constraints.
-- DTO naming is consistent.
-- Internal persistence fields (occurrenceIndex, deletedAt, sourceKind) are not exposed.
+- Recurring-related use-cases UC-6 (single via ONETIME), UC-11 (recurring), UC-7 and UC-8 (with series scope) are covered.
+- All series CRUD operations (Create, Read, Update, Delete) are documented.
+- Validation includes recurrence pattern validity, max instance limits, conflict checks.
+- DTO naming is consistent with CreateXRequestDto, UpdateXRequestDto, XResponseDto pattern.
+- Internal persistence fields are not exposed.

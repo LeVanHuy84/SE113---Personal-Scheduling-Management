@@ -1,4 +1,9 @@
-# API Contract: Appointment
+# API Contract: Appointment (DEPRECATED)
+
+> **Status**: DEPRECATED — This API contract references endpoints that have been replaced by the Series API (`/series`).
+> Single appointment creation is now handled through series with `recurrenceType: ONETIME`.
+>
+> See [recurring.api.md](recurring.api.md) for current appointment series endpoints.
 
 ## Feature
 
@@ -8,68 +13,18 @@
 
 ## Related Use-cases
 
-- UC-6: Create appointment
-- UC-7: Update appointment
-- UC-8: Delete appointment
+- UC-6: Create appointment (via series)
 - UC-12: Manage appointment status
 
-## Endpoint 1: Create Appointment
+⚠️ **Note**: Most appointment endpoints have been consolidated into the Series API. Only status management remains here.
 
-### Endpoint
-
-- Method: POST
-- URL: /appointments
-- Description: Create a non-recurring appointment for authenticated user.
-
-### Request DTO
-
-#### CreateAppointmentRequestDto
-
-| Field       | Type                | Required | Validation                                                    |
-| ----------- | ------------------- | -------- | ------------------------------------------------------------- |
-| title       | string              | Yes      | min length 1; max length 255                                  |
-| description | string              | No       | max length 5000                                               |
-| startTime   | ISO datetime string | Yes      | must be before endTime (BR-6); must not be in the past (BR-7) |
-| endTime     | ISO datetime string | Yes      | must be after startTime (BR-6)                                |
-| isAllDay    | boolean             | No       | default false                                                 |
-
-### Response DTO
-
-#### AppointmentResponseDto
-
-| Field       | Type                | Description                             |
-| ----------- | ------------------- | --------------------------------------- |
-| id          | uuid string         | Appointment identifier                  |
-| title       | string              | Appointment title                       |
-| description | string nullable     | Appointment description                 |
-| startTime   | ISO datetime string | Start timestamp                         |
-| endTime     | ISO datetime string | End timestamp                           |
-| status      | enum                | SCHEDULED, COMPLETED, CANCELLED, MISSED |
-| createdAt   | ISO datetime string | Creation timestamp                      |
-| updatedAt   | ISO datetime string | Last update timestamp                   |
-
-### Business Rules Mapping
-
-- BR-5: appointment belongs to requesting user.
-- BR-6: startTime must be earlier than endTime.
-- BR-7: appointment cannot be created in the past.
-- BR-8: overlap prevented with same-user existing appointments.
-- BR-11: user can create own appointment.
-
-### Error Cases
-
-- 400 Bad Request: invalid time range or malformed payload.
-- 401 Unauthorized: missing or invalid JWT.
-- 409 Conflict: overlapping appointment.
-- 422 Unprocessable Entity: semantic validation failure.
-
-## Endpoint 2: Get Appointment List (Core)
+## Endpoint 1: Get Appointment List
 
 ### Endpoint
 
 - Method: GET
 - URL: /appointments?page={page}&limit={limit}
-- Description: Retrieve paginated appointments for authenticated user.
+- Description: Retrieve paginated appointments for authenticated user (both personal and generated from series).
 
 ### Request DTO
 
@@ -100,21 +55,22 @@
 - 400 Bad Request: invalid pagination params.
 - 401 Unauthorized: missing or invalid JWT.
 
-## Endpoint 3: Get Appointment by Id
+## Endpoint 2: Update Appointment Status
 
 ### Endpoint
 
-- Method: GET
-- URL: /appointments/:id
-- Description: Retrieve a single appointment by id for authenticated user.
+- Method: PATCH
+- URL: /appointments/:id/status
+- Description: Update appointment status (SCHEDULED, COMPLETED, CANCELLED, MISSED).
 
 ### Request DTO
 
-#### GetAppointmentByIdParamsDto
+#### UpdateAppointmentStatusRequestDto
 
-| Field | Type        | Required | Validation        |
-| ----- | ----------- | -------- | ----------------- |
-| id    | uuid string | Yes      | valid UUID format |
+| Field  | Type        | Required | Validation                                                      |
+| ------ | ----------- | -------- | --------------------------------------------------------------- |
+| id     | uuid string | Yes      | valid appointment UUID                                          |
+| status | enum        | Yes      | SCHEDULED, COMPLETED, CANCELLED, MISSED                         |
 
 ### Response DTO
 
@@ -128,76 +84,37 @@
 | startTime   | ISO datetime string | Start timestamp                         |
 | endTime     | ISO datetime string | End timestamp                           |
 | status      | enum                | SCHEDULED, COMPLETED, CANCELLED, MISSED |
-| createdAt   | ISO datetime string | Creation timestamp                      |
-| updatedAt   | ISO datetime string | Last update timestamp                   |
+| updatedAt   | ISO datetime string | Update timestamp                        |
 
 ### Business Rules Mapping
 
-- BR-5: only owner can read appointment.
+- BR-5: only owner can update appointment status.
+- BR-12: status transitions respect appointment lifecycle.
 
 ### Error Cases
 
-- 400 Bad Request: invalid id format.
+- 400 Bad Request: invalid status value.
 - 401 Unauthorized: missing or invalid JWT.
 - 404 Not Found: appointment not found for user.
 
-## Endpoint 4: Update Appointment
+## ⚠️ Deprecated Endpoints
 
-### Endpoint
+The following endpoints have been **removed** and replaced by the Series API:
 
-- Method: PUT
-- URL: /appointments/:id
-- Description: Update appointment details; for recurring instances, optional scope may apply.
+- ~~POST /appointments~~ → use `POST /series` with `recurrenceType: ONETIME`
+- ~~GET /appointments/:id~~ → use `GET /series/:id` for series details
+- ~~PUT /appointments/:id~~ → use `PATCH /series/:id` for series updates
+- ~~DELETE /appointments/:id~~ → use `DELETE /series/:id` for series deletion
+- ~~POST /appointments/:id/tags~~ → tag assignment moved to series-level operations
 
-### Request DTO
+See [recurring.api.md](recurring.api.md) for the complete Series API documentation.
 
-#### UpdateAppointmentRequestDto
+## Self Review
 
-| Field       | Type                | Required | Validation                                                                                                |
-| ----------- | ------------------- | -------- | --------------------------------------------------------------------------------------------------------- |
-| title       | string              | No       | min length 1; max length 255                                                                              |
-| description | string              | No       | max length 5000                                                                                           |
-| startTime   | ISO datetime string | No       | if provided, must satisfy startTime < endTime (BR-6) and not in past for future scheduling changes (BR-7) |
-| endTime     | ISO datetime string | No       | if provided, must be after startTime (BR-6)                                                               |
-| isAllDay    | boolean             | No       | boolean                                                                                                   |
-| scope       | enum string         | No       | single or series when appointment belongs to recurring set (BR-12)                                        |
-
-### Response DTO
-
-#### AppointmentResponseDto
-
-| Field       | Type                | Description             |
-| ----------- | ------------------- | ----------------------- |
-| id          | uuid string         | Appointment identifier  |
-| title       | string              | Updated title           |
-| description | string nullable     | Updated description     |
-| startTime   | ISO datetime string | Updated start timestamp |
-| endTime     | ISO datetime string | Updated end timestamp   |
-| status      | enum                | Current status          |
-| updatedAt   | ISO datetime string | Update timestamp        |
-
-### Business Rules Mapping
-
-- BR-5: only owner can update appointment.
-- BR-6, BR-7: time validation remains enforced on update.
-- BR-8: overlap checked against other appointments.
-- BR-12: recurring updates may target single instance or series.
-- BR-11: users can edit their appointments.
-
-### Error Cases
-
-- 400 Bad Request: invalid payload, invalid scope, invalid time.
-- 401 Unauthorized: missing or invalid JWT.
-- 404 Not Found: appointment not found for user.
-- 409 Conflict: overlap after update.
-
-## Endpoint 5: Delete Appointment
-
-### Endpoint
-
-- Method: DELETE
-- URL: /appointments/:id?scope=single|series
-- Description: Delete appointment; if recurring, delete one instance or whole series.
+- Appointment status management (UC-12) is covered.
+- Appointment creation now handled via Series API.
+- All deprecated endpoints clearly marked.
+- Cross-references to current API provided.
 
 ### Request DTO
 
