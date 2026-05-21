@@ -1,221 +1,202 @@
-# Test Plan: PSMS System
+# Test Plan: PSMS Backend Verification (Focused)
 
 ## 1. Test Plan Identifier
 
-- **ID:** PSMS-TP-R1.0-BE-20260324
-- **Date:** 2026-03-24
+- **ID:** PSMS-TP-R1.1-BE-20260517
+- **Date:** 2026-05-17
 - **Author:** QA/Backend Verification Team
+
+References:
+
+- **SRS:** docs\srs\SRS.md
+- **Business Rules:** docs\business-rules\business-rules.md
 
 ## 2. Introduction
 
-This test plan defines verification for the Personal Scheduling Management System (PSMS) backend APIs and asynchronous processing pipeline. The plan is based on `docs/srs/SRS.md`, `docs/business-rules/business-rules.md`, `docs/domain/domain-model.md`, `docs/database/database-design.md`, feature notes, phase documents, and sequence diagrams.
+This document narrows backend verification to a focused set of five core backend functions derived from the latest SRS, Business Rules, and API contracts. The intent is to keep the QA scope realistic for a phase-based backend project while concentrating on security, async consistency, and transaction integrity.
 
-- **Objective:**  
-  Verify that appointment lifecycle, reminder scheduling/triggering, recurring generation logic, tag/search/filter behavior, and notification history operate correctly and safely under defined business rules (BR-5, BR-6, BR-7, BR-8, BR-9, BR-12, BR-21, BR-22, BR-23, BR-24, BR-25, BR-26, BR-27).
-
-- **Scope:**  
-  Backend-only testing at Unit, Integration, API Contract/E2E, and System levels for NestJS modules and data flow over PostgreSQL and Redis/BullMQ. UI rendering, browser compatibility, and frontend usability are out of scope.
+- **Objective:** Validate the highest-risk backend functions that affect data correctness, access control, and time-based processing.
+- **Scope:** Backend-only testing at unit, integration, API contract/E2E, and async system levels. The plan is intentionally function-oriented and excludes broad module inventory, frontend behavior, and low-value surface area.
 
 ## 3. Test Items
 
-- **Application baseline:** `psms` backend package version `0.0.1`.
-- **Runtime modules under test:** `AppointmentModule`, `ReminderModule`, `RecurringModule`, `NotificationModule`, `QueueModule`.
-- **Supporting modules touched by scenarios:** `AuthModule` (ownership/JWT checks), `PrismaModule`, `CommonModule` (global filter/interceptor behavior).
-- **Core API endpoints:**
-  - `POST /appointments`
-  - `GET /appointments`
-  - `DELETE /appointments/{id}?scope=single|series`
-  - `PATCH /appointments/{id}/status`
-  - `POST /appointments/{id}/reminders`
-  - `POST /reminders/{id}/snooze`
-  - `POST /tags`
-  - `GET /tags`
-  - `POST /appointments/{id}/tags`
-  - `GET /notifications`
-  - `PATCH /notifications/{id}/read`
-- **Persistence items (Prisma/PostgreSQL):** `appointments`, `appointment_series`, `reminders`, `reminder_events`, `tags`, `appointment_tags`, `notifications`, `users`.
-- **Queue items (Redis/BullMQ):** reminder delayed jobs, job idempotency (`jobId = reminderId`), worker-trigger execution path.
+- **Application baseline:** psms backend (current branch/commit under test).
+- **Primary functional surfaces under test:** authentication endpoints, appointment lifecycle management, recurring-series management, and reminder processing pipeline.
+- **Supporting services:** PrismaModule (persistence), CommonModule (guards/interceptors), NotificationService (internal support path), EmailService (worker side-effect checks only).
+- **Core HTTP endpoints aligned to current contracts:**
+  - **F1 User Registration:** `POST /auth/register`
+  - **F2 User Authentication / Login:** `POST /auth/login`, `POST /auth/forgot-password`
+  - **F3 Appointment Management:** `GET /appointments`, `PATCH /appointments/:id/status`
+  - **F4 Appointment Series Management:** `POST /series`, `GET /series`, `PATCH /series/:id`, `DELETE /series/:id?scope=single|series`
+  - **F5 Reminder & Notification Scheduling:** no public HTTP controller; verified through internal service/worker execution and persisted notification history
 
-## 4. Features to be Tested
+  Note: The test-plan aligns to the API contract surface. If a given deployment lacks public endpoints for create/update (e.g., POST/PUT), perform equivalent service-level integration tests (internal controller/service calls) and record implementation gaps in the defect log.
 
-- **F1 Appointment create/update/delete/status (SRS 3.2, UC-6/UC-7/UC-8/UC-12):**
-  - Time validation and ownership checks.
-  - Conflict detection formula: `(startA < endB) AND (endA > startB)`.
-  - Single vs series delete scope behavior.
-  - Status transition handling and invalid transition rejection.
-- **F2 Reminder scheduling and trigger path (SRS 3.4, UC-15/UC-20):**
-  - `remindAt < appointment.startTime` validation.
-  - Multiple reminders per appointment.
-  - Delayed queue job creation and worker execution.
-  - Trigger persistence into notification history.
-- **F3 Snooze behavior (SRS 3.4, UC-16):**
-  - Snooze recomputes `nextTriggerAt` and reschedules queue job.
-  - Re-trigger flow consistency and state updates.
-- **F4 Recurring appointment logic (SRS 3.2, UC-11):**
-  - Daily/weekly/monthly recurrence parsing.
-  - Upfront generation with max 50 instances (Phase 4 rule).
-  - Conflict validation across generated instances.
-  - Correct `seriesId` linkage.
-- **F5 Tagging and search/filter (SRS 3.2, UC-13/UC-14):**
-  - Tag CRUD constraints (unique per user).
-  - Appointment-tag many-to-many consistency.
-  - Query filtering by date range, tag, status, keyword.
-  - Empty-result and multi-filter combinations.
-- **F6 Notification history (SRS 3.4, UC-17):**
-  - Triggered reminders persisted to notifications.
-  - Read/unread state transitions.
-  - User ownership isolation for notification retrieval.
-- **F7 Cross-cutting non-functional checks (SRS 6.2/6.3):**
-  - Appointment operation latency target under normal load (`< 2s`, BR-30).
-  - JWT-protected access and data isolation (BR-3, BR-5).
+- **Supporting auth endpoint:** `POST /auth/reset-password` (regression coverage only; not a primary function in this plan).
 
-## 5. Features Not to be Tested
+- **Async/data surfaces:** reminder delayed jobs, worker processing, notification log persistence, and idempotent job handling through Redis/BullMQ.
+- **Persistence items (Prisma/PostgreSQL):** users, appointments, appointment_series, reminders, notifications.
 
-- **Frontend/UI behavior:** calendar rendering, responsive layout, browser-specific UX (covered by frontend scope, not this backend plan).
-- **OAuth and refresh-token flows:** explicitly out of scope in Phase 1.
-- **Full RFC RRULE compatibility:** Phase 4 defines limited recurrence support only (daily/weekly/monthly).
-- **External notification channels (email/SMS/push):** current release scope is in-app notifications.
-- **Kafka event bus flows:** Kafka is not defined in architecture, dependencies, or phase docs for current release.
+## 4. Features to be Tested (Core backend functions)
 
-## 6. Approach
+We retain five core backend functions. The first two are required auth-related functions; F3 covers appointment lifecycle management; F4 isolates recurring-series behavior; and F5 covers the async reminder/notification pipeline. Password reset remains in the auth regression matrix as supporting coverage, but it is no longer a primary function in this business-focused scope. Search/filtering, tag CRUD, team flows, statistics, CSV export, and notification HTTP endpoints are downgraded to supporting or out-of-scope checks.
 
-- **Techniques:**
-  - Unit tests for domain/business-rule logic (validation, conflict math, recurrence bounds, status transitions).
-  - Integration tests for service + repository + PostgreSQL behavior.
-  - API contract/E2E tests with `supertest` against NestJS app.
-  - Async system tests for Redis/BullMQ scheduling, worker trigger, snooze reschedule, and idempotent job handling.
-  - Regression suite on every phase increment.
-- **Levels and tools (actual stack):**
-  - Unit/Integration/E2E runner: Jest + Nest testing utilities.
-  - API testing: `supertest` and JSON schema/assertion checks.
-  - DB verification: Prisma Client against isolated PostgreSQL test database.
-  - Queue verification: Redis + BullMQ queue/worker inspection.
-  - CI command gates: `npm run test`, `npm run test:e2e`, `npm run test:cov`.
-- **Traceability mapping basis:**
-  - SRS feature clauses (3.2 and 3.4).
-  - BR mapping (BR-5/6/7/8/9/12/21/22/23/24/25/26/27/30).
-  - Sequence flow references: create appointment, delete appointment, set reminders, snooze reminder, manage recurring appointment, manage tags, search/filter appointments, mark appointment completed.
+- **F1 User Registration (SRS FR-01, UC-1):**
+  - Validate unique email, password hashing, and required profile fields.
+  - Verify ownership boundaries start at account creation; no duplicate account creation for the same email.
+  - BR focus: BR-1, BR-31, BR-32.
 
-## 7. Item Pass/Fail Criteria
+- **F2 User Authentication / Login (SRS FR-02, FR-03, UC-2):**
+  - Validate valid credentials, JWT issuance, token expiry, and authentication logging.
+  - Enforce protected access on downstream endpoints.
+  - BR focus: BR-2, BR-3, BR-4, BR-33.
+
+  - **F3 Appointment Management (SRS FR-06, FR-07, FR-08, FR-09, FR-10, FR-11, FR-12, UC-6, UC-7, UC-8, UC-12, UC-13, UC-14):**
+  - Focused test coverage (decision-table targets):
+    - `detectOverlap`: conflict detection using `(startA < endB) AND (endA > startB)` — internal logic validation, used when updating appointment start/end times.
+    - `transitionStatus`: validate allowed lifecycle/status transitions and rejection of invalid transitions via PATCH `/appointments/:id/status` endpoint.
+    - `retrieveAppointments`: GET `/appointments` (paginated list) — light smoke coverage only.
+
+  - **Note:** Appointment creation is now exclusively through F4 (`POST /series` with `recurrenceType: ONETIME`), not through direct `/appointments` endpoint. Appointment updates are limited to status transitions.
+  - BR focus: BR-5, BR-6, BR-7, BR-8, BR-14, BR-19, BR-20, BR-27.
+
+- **F4 Appointment Series Management (SRS FR-06, FR-07, FR-08, FR-09, UC-6, UC-7, UC-8, UC-12):**
+  - Focused test coverage (decision-table targets):
+    - `createSeries`: recurrence rule validation (RRULE params, boundaries, invalid recurrence rejection).
+    - `generateInstances`: instance generation logic and boundary handling for series expansion.
+    - `partialSeriesRollback`: transactional rollback behavior when a partial-series update/creation fails.
+
+  - Skip extensive CRUD/list verification for `appointment_series` (smoke-only if needed).
+  - BR focus: BR-9, BR-10, BR-12.
+
+  - **F5 Reminder & Notification Scheduling (SRS FR-15, FR-16, FR-17, UC-15, UC-16, UC-17, UC-20):**
+  - **Scope:** No public HTTP endpoints. Verified through internal service/worker execution and persisted notification history in database.
+  - Focused test coverage (decision-table & async targets):
+    - `scheduleReminderJob`: correct delay calculation, job creation for reminders via ReminderService internal API.
+    - `processReminderJob` / `persistNotification`: BullMQ worker execution path that writes notification history and updates reminder status.
+    - `retryAndIdempotency`: retry semantics, deduplication/idempotency on worker retries via queue idempotency keys.
+
+  - Integration tests: verify via internal service calls and database state assertions; exclude HTTP endpoint testing.
+  - BR focus: BR-21, BR-22, BR-23, BR-24, BR-25, BR-26.
+
+Supporting verification only: password reset remains covered in the auth regression matrix, and tag/search/filter checks are supporting smoke coverage only.
+
+## 5. Features Not to be Tested (out-of-scope)
+
+- Frontend UI, calendar rendering, and client-side behaviors.
+- Tag CRUD and appointment search/filter may be covered only as supporting smoke coverage if needed by appointment data setup.
+- Team management, team appointment workflows, and availability checks.
+- Statistics dashboards, trend endpoints, CSV export, and reporting flows.
+- Notification HTTP endpoints, because the current backend exposes NotificationService as an internal service rather than a public controller.
+- External notification delivery channels (email/SMS/push) as independent validation targets.
+- Kafka or any other event bus not present in the current architecture or API contracts.
+
+## 6. Test Approach
+
+- **Unit testing:** auth validation, password reset rules, appointment lifecycle logic, recurrence generation, status transitions, and reminder timing calculations.
+- **Integration testing:** service + repository + Prisma/PostgreSQL assertions for ownership, uniqueness, transaction integrity, and persisted side effects.
+- **API contract / E2E testing:** `supertest` for the exposed auth, appointment, and series endpoints currently defined in the API contracts.
+- **Async system testing:** Redis + BullMQ worker execution, delayed reminder delivery, snooze/reschedule handling, and notification log persistence.
+- **Validation focus:** authorization isolation, overlap detection, series propagation correctness, state-transition correctness, idempotent job handling, and rollback integrity.
+
+## 7. Traceability
+
+- **F1 User Registration:** FR-01; UC-1; BR-1, BR-31, BR-32.
+- **F2 User Authentication / Login:** FR-02, FR-03; UC-2; BR-2, BR-3, BR-4, BR-33.
+- **F3 Appointment Management:** FR-06, FR-07, FR-08, FR-09, FR-10, FR-11, FR-12; UC-6, UC-7, UC-8, UC-12, UC-13, UC-14; BR-5, BR-6, BR-7, BR-8, BR-14, BR-19, BR-20, BR-27.
+- **F4 Appointment Series Management:** FR-06, FR-07, FR-08, FR-09; UC-6, UC-7, UC-8, UC-12; BR-9, BR-10, BR-12.
+- **F5 Reminder & Notification Scheduling:** FR-15, FR-16, FR-17; UC-15, UC-16, UC-17, UC-20; BR-21, BR-22, BR-23, BR-24, BR-25, BR-26.
+
+- **Traceability note:** BR-30 is retained only as a secondary performance consideration and is not a primary scope driver in this reduced plan.
+
+## 8. Item Pass/Fail Criteria
 
 - **Pass:**
-  - 100% pass for Critical and High severity test cases in focused domains.
-  - No open Severity-1 defects in appointment, reminder, recurring, tag/search, notification flows.
-  - All BR-mapped assertions for focused modules pass.
-  - E2E scenarios for all targeted endpoints pass in isolated test environment.
-- **Fail:**
-  - Any unresolved blocker in conflict detection, reminder trigger/snooze, recurring generation integrity, or user data isolation.
-  - Any data corruption or inconsistency between queue events and persisted reminders/notifications.
-  - Reproducible performance breach of BR-30 on core appointment APIs under normal test load.
+  - All Critical and High-severity test cases for the selected domains pass.
+  - No unresolved Severity-1 defects in registration/login, appointment management, appointment series management, or reminder processing flows.
+  - Ownership/isolation assertions (no cross-user access) validated across endpoints and services.
+  - Async delivery correctness: scheduled reminders produce persisted notification records once; job idempotency enforced.
 
-## 8. Suspension Criteria and Resumption Requirements
+- **Fail:**
+  - Any reproducible data integrity failure (transaction partial-writes, orphaned series instances, or inconsistent reminder/notification state).
+  - Ownership/security breach exposing other users' data.
+  - Lost or duplicated reminders due to queue idempotency or worker retry semantics.
+  - Performance regressions that violate BR-30 for core appointment operations under normal load.
+
+## 9. Suspension Criteria and Resumption Requirements
 
 - **Suspension:**
-  - PostgreSQL or Redis test infrastructure unavailable for more than 30 minutes.
-  - Global auth/ownership break causing invalid cross-user data access.
-  - Queue worker failures causing reminder trigger tests to be non-executable.
-  - Build instability where more than 20% of executed cases fail due to environment or shared blocker.
+  - PostgreSQL or Redis/BullMQ test infrastructure unavailable for longer than 30 minutes.
+  - Critical auth or ownership regression that invalidates isolation tests.
+  - Persistent worker/process failures preventing async scenario execution.
+
 - **Resumption:**
-  - Environment restored and smoke suite green for health checks.
-  - Blocking defects patched and verified via targeted retest.
-  - Queue + DB consistency checks pass for at least one end-to-end reminder scenario.
+  - Environment restored and core smoke checks pass (DB connectivity, Redis connectivity, auth token issuance, basic list/status endpoints).
+  - Targeted retest of affected domain(s) passes.
 
-## 9. Test Deliverables
+## 10. Test Deliverables
 
-- IEEE Test Plan document (`docs/test/test-plan.md`).
-- Requirement-to-test traceability matrix (SRS/BR/UC to test cases).
-- Test case specifications and datasets (appointment, reminder, recurring, tagging/filtering, notification).
-- Automated test code and execution logs (Jest unit/integration/e2e).
-- Defect reports with severity, reproduction data, and impacted rule references.
-- Final test summary report with release recommendation.
+- Updated Test Plan (this document).
+- Requirement-to-test traceability matrix for the five retained functions.
+- Automated test suites (Jest): unit, integration, and E2E/async tests.
+- Test datasets and seed/reset scripts for deterministic fixtures.
+- Execution logs, CI results, and defect reports with BR/UC mappings.
 
-## 10. Testing Tasks
+## 11. Testing Tasks (focused)
 
-- **T0 Phase 0 Foundation validation:** verify env isolation, DB/Redis connectivity, global exception and response wrappers.
-- **T1 Phase 1 prerequisites:** verify JWT/ownership guard preconditions for all protected target endpoints.
-- **T2 Phase 2 Appointment Core:** design and execute conflict/time-validation and CRUD/status transition tests.
-- **T3 Phase 3 Reminder System:** validate reminder persistence, queue scheduling, worker trigger, and idempotent job behavior.
-- **T4 Phase 4 Recurring:** validate recurrence parsing, max-instance rule, series linkage, and conflict checks for generated instances.
-- **T5 Phase 5 Tag & Search:** validate tag uniqueness, assignment integrity, and multi-criteria appointment filtering/search.
-- **T6 Phase 6 Notification:** validate notification logging, read-status mutation, and ownership constraints.
-- **T7 Cross-phase regression:** rerun critical flows after each phase completion.
-- **T8 System-level integration run:** execute end-to-end scenarios across appointment → reminder → notification lifecycle.
-- **T9 Reporting:** collect metrics, defects, residual risks, and sign-off evidence.
+- **T0 Foundation:** environment and harness readiness — DB migrations applied, Redis/BullMQ available, `.env.test` configured, seed/reset scripts verified.
+- **T1 User Registration / Login:** auth flow unit and integration tests, including token and ownership negative cases.
+- **T2 Appointment Management:** contract and integration checks for appointment retrieval, scheduling, conflict detection, lifecycle rules, and status transitions.
+- **T3 Appointment Series Management:** recurrence parsing, series linkage, instance generation, and propagation/update consistency tests.
+- **T4 Async Reminder Processing:** delayed queue job tests, worker execution, snooze/reschedule, notification log persistence, and idempotency checks.
+- **T5 Regression Smoke:** minimal end-to-end flow across auth, appointment management, series management, and reminder processing before release gating.
 
-## 11. Environmental Needs
+## 12. Environmental Needs
 
-- **Runtime/Application:**
-  - Node.js LTS compatible with NestJS 11 runtime.
-  - NestJS backend service with modules loaded via `AppModule`.
-- **Database:**
-  - PostgreSQL instance for isolated test schema/database.
-  - Prisma migrations/schema applied before execution.
-- **Async/Queue:**
-  - Redis instance.
-  - BullMQ queue + worker processes enabled for reminder jobs.
-- **Messaging:**
-  - Kafka not required for this release test scope (no active Kafka integration in docs/dependencies).
-- **Test tooling:**
-  - Jest, ts-jest, supertest, Nest testing module.
-  - Seed/reset scripts for deterministic fixtures.
-- **Execution profile:**
-  - Dedicated `.env.test` and `NODE_ENV=test` isolation.
-  - Clock/timezone control strategy for reminder and recurrence timing assertions.
+- Node.js LTS compatible with NestJS used in repo; NestJS app runnable via `npm run start:test` (or CI harness).
+- PostgreSQL instance (isolated test DB) with Prisma migrations applied; seed/reset scripts available.
+- Redis instance and BullMQ worker harness for async tests.
+- Jest, ts-jest, supertest, Prisma Client, and local test harness scripts. Clock/time mocking library (e.g., `lolex`/`@sinonjs/fake-timers`) recommended for timing-sensitive tests.
 
-## 12. Responsibilities
+## 13. Responsibilities
 
-- **QA Lead:** Owns strategy, risk decisions, entry/exit criteria, and final recommendation.
-- **Backend QA Engineer(s):** Create/maintain automated tests for appointment/reminder/recurring/tag/notification APIs.
-- **SDET/Automation Engineer:** Maintain CI pipelines, test data lifecycle, and flaky-test remediation.
-- **Backend Developer (Module Owner):** Support defect triage/fixes and provide technical clarifications.
-- **DevOps/Platform Engineer:** Maintain PostgreSQL/Redis test infrastructure and service availability.
+- **QA Lead:** strategy, entry/exit criteria, and sign-off.
+- **Backend QA Engineer(s):** author and maintain tests for the 6 retained functions.
+- **SDET/Automation Engineer:** CI integration, environment automation, flaky-test remediation.
+- **Backend Module Owners:** support triage and fix verification.
+- **Platform/DevOps:** provide and maintain test DB and Redis/BullMQ test infrastructure.
 
-## 13. Staffing and Training Needs
+## 14. Staffing and Training Needs
 
-- **Required staffing:**
-  - 1 QA Lead.
-  - 2 QA engineers (API + integration focus).
-  - 1 SDET (automation/CI support).
-  - Shared backend engineer support per phase.
-- **Required skills/training:**
-  - NestJS testing patterns (`TestingModule`, dependency overrides).
-  - Prisma transaction and relational assertion patterns.
-  - Redis/BullMQ delayed job and worker observability.
-  - Time-based test design (timezone, clock skew, deterministic scheduling).
+- 1 QA Lead, 2 QA engineers, 1 SDET, with backend engineering support on-demand.
+- Training: NestJS testing, Prisma transactions/tests, BullMQ/Redis testing patterns, deterministic time mocking.
 
-## 14. Schedule
+## 15. Schedule (focused)
 
-- **Baseline timeline (aligned to phases):**
-  - Phase 0 gates and harness readiness: completed before feature test execution.
-  - Phase 2 test design and automation: Week 1.
-  - Phase 3 reminder async tests: Week 2.
-  - Phase 4 recurring logic tests: Week 3.
-  - Phase 5 tag/search tests: Week 4.
-  - Phase 6 notification tests: Week 5.
-  - Cross-phase regression and system test: Week 6.
-  - Final defect burn-down and summary report: Week 7.
-- **Milestones:**
-  - Test design freeze: end of Week 2.
-  - Full automation pass for focused scope: end of Week 5.
-  - Release readiness decision: end of Week 7.
+- Week 0: Environment and harness readiness (T0).
+- Week 1: Registration and login tests (T1).
+- Week 2: Appointment management tests (T2).
+- Week 3: Appointment series management and async reminder processing tests (T3, T4).
+- Week 4: Regression smoke and release review (T5).
 
-## 15. Risks and Contingencies
+- Milestones: scope freeze after Week 1; primary automation pass after Week 3; release gating after Week 4.
 
-- **Risk:** Reminder jobs scheduled but not triggered due to worker/queue drift.
-  - **Contingency:** Add health probes, queue depth monitoring, and replay tests for delayed jobs.
-- **Risk:** Redis state inconsistency or stale queue entries after retries/redeploys.
-  - **Contingency:** Enforce idempotent job IDs, cleanup hooks, and queue state reset per test run.
-- **Risk:** Recurring series partial-write or conflict gaps under transaction failures.
-  - **Contingency:** Validate transactional rollback scenarios and post-failure data integrity checks.
-- **Risk:** Timezone/clock issues causing incorrect remindAt or recurrence generation.
-  - **Contingency:** Standardize timezone in tests and use fixed clock injection for deterministic assertions.
-- **Risk:** Ownership/security regression exposing cross-user appointments or notifications.
-  - **Contingency:** Mandatory negative authorization tests on all protected endpoints in regression suite.
-- **Risk:** Performance degradation on filtered queries and conflict checks.
-  - **Contingency:** Run targeted performance baselines and query-plan review for indexed paths.
+## 16. Risk Assessment
 
-## 16. Approvals
+- **Worker/queue drift:** reminder jobs may be scheduled but not executed on time; mitigate with replay tests, queue health checks, and deterministic worker harnesses.
+- **Duplicate or lost reminders:** Redis/BullMQ retry behavior can produce inconsistent state; mitigate with idempotent job IDs, cleanup hooks, and notification log assertions.
+- **Series propagation failures:** recurring-series persistence may partially commit on errors or lose linkage; mitigate with rollback tests and post-failure data integrity checks.
+- **Authorization regressions:** ownership checks may leak data across users; mitigate with negative tests on all protected endpoints and service-level isolation checks.
+- **API contract drift:** current endpoint surface is narrower than older documentation; mitigate by keeping contract tests tied to the current docs/api-contract files.
 
-- **QA Lead** — Approval pending
-- **Backend Technical Lead** — Approval pending
-- **Project Manager** — Approval pending
+## 17. Summary
+
+- **Short summary:** the plan now centers on five core backend functions rather than large modules. It keeps auth, appointment management, appointment series management, and async reminder processing as the primary verification targets.
+- **Removed or downgraded areas:** Password reset was downgraded from a primary function to supporting auth regression coverage. Appointment Search & Filtering was removed as a standalone primary function and folded into Appointment Management. Tag CRUD, Team Management, Statistics, CSV Export, and Notification HTTP endpoints are no longer primary scope items.
+- **Inconsistencies found:** current appointment API contracts expose a smaller HTTP surface than the broader SRS wording suggested; Notification is internal-service only and does not have a public controller.
+
+## 18. Approvals
+
+- **QA Lead** - Approval pending
+- **Backend Technical Lead** - Approval pending
+- **Project Manager** - Approval pending

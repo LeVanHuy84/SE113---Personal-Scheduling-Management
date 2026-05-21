@@ -240,6 +240,79 @@
 - 404 Not Found: token does not map to user.
 - 500 Internal Server Error: password update failure.
 
+## Endpoint 7: Refresh Access Token
+
+### Endpoint
+
+- Method: POST
+- URL: /auth/refresh
+- Description: Refresh access token using valid refresh token.
+
+### Request DTO
+
+#### CreateAuthRefreshRequestDto
+
+| Field        | Type   | Required | Constraints                                                                                  |
+| ------------ | ------ | -------- | -------------------------------------------------------------------------------------------- |
+| refreshToken | string | Yes      | - Must be valid token<br>- Must not be expired<br>- Must match stored token (rotation check) |
+
+### Response DTO
+
+#### AuthRefreshResponseDto
+
+| Field        | Type   | Description          |
+| ------------ | ------ | -------------------- |
+| accessToken  | string | New JWT access token |
+| tokenType    | string | Bearer               |
+| expiresIn    | number | Token TTL in seconds |
+| refreshToken | string | New refresh token    |
+
+### Business Rules Mapping
+
+- BR-3: refresh token used for new access token.
+- BR-4: token rotation applied.
+
+### Error Cases
+
+- 400 Bad Request: invalid refresh token.
+- 401 Unauthorized: expired or invalid refresh token.
+- 500 Internal Server Error: token generation failure.
+
+## Endpoint 8: Logout
+
+### Endpoint
+
+- Method: POST
+- URL: /auth/logout
+- Description: Terminate current authenticated session.
+
+### Request DTO
+
+#### CreateAuthLogoutRequestDto
+
+| Field        | Type   | Required | Constraints                         |
+| ------------ | ------ | -------- | ----------------------------------- |
+| refreshToken | string | Yes      | - Must be valid token               |
+
+### Response DTO
+
+#### AuthLogoutResponseDto
+
+| Field   | Type    | Description                  |
+| ------- | ------- | ---------------------------- |
+| success | boolean | Logout operation result      |
+| message | string  | Human-readable logout status |
+
+### Business Rules Mapping
+
+- BR-3: logout endpoint requires JWT authentication.
+- BR-4: token invalidation/expiry policy applied on session close.
+
+### Error Cases
+
+- 401 Unauthorized: missing or invalid access token.
+- 500 Internal Server Error: session invalidation failure.
+
 ## Self Review
 
 - All auth use-cases UC-1, UC-2, UC-2.1, UC-4 are covered.

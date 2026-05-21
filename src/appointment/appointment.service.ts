@@ -29,6 +29,10 @@ export class AppointmentService {
   }
 
   async updateAppointmentStatus(id: string, status: AppointmentStatus) {
+    if (!Object.values(AppointmentStatus).includes(status)) {
+      throw new BadRequestException(`Invalid appointment status: ${status}`);
+    }
+
     const appointment = await this.appointmentRepository.findById(id);
 
     if (!appointment) {

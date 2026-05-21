@@ -6,10 +6,14 @@ import { TeamAppointmentService } from './team-appointment.service';
 describe('TeamAppointmentService (Business-rule driven tests)', () => {
   let service: TeamAppointmentService;
   const mockRepo: any = {};
+  const mockNotificationService: any = {
+    sendAndCreateNotification: jest.fn(),
+  };
 
   beforeEach(() => {
     for (const key of Object.keys(mockRepo)) mockRepo[key] = mockRepo[key];
-    service = new TeamAppointmentService(mockRepo);
+    mockNotificationService.sendAndCreateNotification.mockReset();
+    service = new TeamAppointmentService(mockRepo, mockNotificationService);
   });
 
   describe('createTeamAppointment (FR-TA-Create Owner/Admin only)', () => {

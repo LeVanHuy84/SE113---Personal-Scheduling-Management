@@ -47,6 +47,10 @@ export class AppointmentSeriesService {
     userId: string,
     dto: CreateAppointmentSeriesRequestDto,
   ): Promise<{ id: string }> {
+    if (dto.seriesTimezone && !this.isValidTimezone(dto.seriesTimezone)) {
+      throw new BadRequestException('INVALID_TIMEZONE');
+    }
+
     const isValid = this.isValidateRecurrence({
       recurrenceType: dto.recurrenceType,
       weeklyDay: dto.weeklyDay,
@@ -113,6 +117,10 @@ export class AppointmentSeriesService {
     seriesId: string,
     dto: UpdateAppointmentSeriesRequestDto,
   ): Promise<{ id: string }> {
+    if (dto.seriesTimezone && !this.isValidTimezone(dto.seriesTimezone)) {
+      throw new BadRequestException('INVALID_TIMEZONE');
+    }
+
 
     // check recurrence
     const isValid = this.isValidateRecurrence({
@@ -259,6 +267,15 @@ export class AppointmentSeriesService {
 
       default:
         return false;
+    }
+  }
+
+  private isValidTimezone(timezone: string): boolean {
+    try {
+      Intl.DateTimeFormat('en-US', { timeZone: timezone });
+      return true;
+    } catch {
+      return false;
     }
   }
 

@@ -74,7 +74,7 @@
 
 - Method: GET
 - URL: /statistics/export
-- Description: Export personal appointment data as CSV with applied filters.
+- Description: Export user appointment data as CSV with applied filters.
 
 ### Request DTO
 
