@@ -9,7 +9,7 @@
 
 - Name: appointment
 - Primary module: Appointment
-- Related entities: Appointment
+- Related entities: Appointment, AppointmentSeries, Tag
 
 ## Related Use-cases
 
@@ -30,14 +30,15 @@
 
 #### GetAppointmentsQueryDto
 
-| Field | Type   | Required | Validation                            |
-| ----- | ------ | -------- | ------------------------------------- |
-| page  | number | No       | integer >= 1; default 1               |
-| limit | number | No       | integer between 1 and 100; default 10 |
+| Field  | Type        | Required | Validation                               |
+| ------ | ----------- | -------- | ---------------------------------------- |
+| page   | number      | No       | integer >= 1; default 1                  |
+| limit  | number      | No       | integer between 1 and 100; default 10    |
+| userId | uuid string | No       | optional filter used by the current code |
 
 ### Response DTO
 
-#### AppointmentListResponseDto
+#### PaginationResponseDto<AppointmentResponseDto[]>
 
 | Field | Type                     | Description                 |
 | ----- | ------------------------ | --------------------------- |
@@ -67,10 +68,10 @@
 
 #### UpdateAppointmentStatusRequestDto
 
-| Field  | Type        | Required | Validation                                                      |
-| ------ | ----------- | -------- | --------------------------------------------------------------- |
-| id     | uuid string | Yes      | valid appointment UUID                                          |
-| status | enum        | Yes      | SCHEDULED, COMPLETED, CANCELLED, MISSED                         |
+| Field  | Type        | Required | Validation                              |
+| ------ | ----------- | -------- | --------------------------------------- |
+| id     | uuid string | Yes      | valid appointment UUID                  |
+| status | enum        | Yes      | SCHEDULED, COMPLETED, CANCELLED, MISSED |
 
 ### Response DTO
 
@@ -157,42 +158,34 @@ See [recurring.api.md](recurring.api.md) for the complete Series API documentati
 
 - Method: PATCH
 - URL: /appointments/:id/status
-- Description: Update status for appointment state management.
+- Description: Update the status of an appointment.
 
 ### Request DTO
 
 #### UpdateAppointmentStatusRequestDto
 
-| Field  | Type        | Required | Validation                               |
-| ------ | ----------- | -------- | ---------------------------------------- |
-| status | enum string | Yes      | allowed: SCHEDULED, COMPLETED, CANCELLED |
+| Field  | Type        | Required | Validation                                |
+| ------ | ----------- | -------- | ----------------------------------------- |
+| id     | uuid string | Yes      | valid UUID format                         |
+| status | enum string | Yes      | AppointmentStatus values from Prisma enum |
 
 ### Response DTO
 
-#### AppointmentStatusResponseDto
-
-| Field     | Type                | Description            |
-| --------- | ------------------- | ---------------------- |
-| id        | uuid string         | Appointment identifier |
-| status    | enum                | Updated status         |
-| updatedAt | ISO datetime string | Update timestamp       |
+- No response body is returned by the current controller implementation.
 
 ### Business Rules Mapping
 
-- BR-5: only owner can change status.
-- BR-14: supports user status changes in appointment workflow.
-- SRS requirement: auto transition to MISSED handled by scheduler/service logic (non-user trigger).
+- Final statuses cannot be changed again once set.
+- Reminder jobs are removed when an appointment is cancelled.
 
 ### Error Cases
 
-- 400 Bad Request: invalid status or disallowed transition.
+- 400 Bad Request: invalid transition from COMPLETED, CANCELLED, or MISSED.
 - 401 Unauthorized: missing or invalid JWT.
-- 404 Not Found: appointment not found for user.
+- 404 Not Found: appointment not found.
 
 ## Self Review
 
-- Use-cases UC-6, UC-7, UC-8, UC-12 are fully covered.
-- No duplicated endpoints inside this feature contract.
-- All validations map to BR-5/6/7/8/11/12/14.
-- DTO naming is consistent.
-- Internal database fields are hidden (no user_id, deleted_at, source_kind, occurrence_index).
+- This contract reflects the current controller surface.
+- Response shapes follow the repository DTOs instead of the older appointment CRUD contract.
+- No create, update, or delete appointment HTTP endpoints are exposed in the current backend.

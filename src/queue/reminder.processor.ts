@@ -1,12 +1,11 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import { NotificationType } from '@prisma/client';
+import { NotificationType, NotificationEventType } from '@prisma/client';
 import { Job } from 'bullmq';
 import { EmailService } from 'src/email/email.service';
 import { NotificationService } from 'src/notification/notification.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { REMINDER_QUEUE_NAME, ReminderJobPayload } from './queue.constants';
-
 
 @Processor(REMINDER_QUEUE_NAME)
 export class ReminderProcessor extends WorkerHost {
@@ -65,17 +64,13 @@ export class ReminderProcessor extends WorkerHost {
 
       // 🔹 notification (push + DB)
       this.notificationService.sendAndCreateNotification({
-        appointment: {
-          id: appointment.id,
-          userId: appointment.userId,
-          startAt: appointment.startAt,
-        },
+        userId: appointment.userId,
+        type: NotificationType.REMINDER,
+        eventType: NotificationEventType.REMINDER_TRIGGERED,
+        appointmentId: appointment.id,
         title: 'Appointment reminder',
         body: message,
-        type: NotificationType.REMINDER,
-        data: {
-          appointmentId: appointment.id,
-        },
+        payload: { appointmentTitle: title },
       }),
     ]);
 
@@ -89,4 +84,3 @@ export class ReminderProcessor extends WorkerHost {
     this.logger.log(`[DONE] Reminder processed: ${appointmentId}`);
   }
 }
-

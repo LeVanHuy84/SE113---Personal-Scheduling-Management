@@ -4,12 +4,12 @@
 
 - Name: tag
 - Primary module: Tag
-- Related entities: Tag, AppointmentTag, Appointment
+- Related entities: Tag, AppointmentSeries, SeriesTag
 
 ## Related Use-cases
 
-- UC-14: Create/assign/manage tags
-- UC-13: Search and filter appointments
+- UC-14: Create and manage tags
+- UC-13: Search and filter appointments through series tags
 
 ## Endpoint 1: Create Tag
 
@@ -17,38 +17,37 @@
 
 - Method: POST
 - URL: /tags
-- Description: Create a new tag for current user.
+- Description: Create a new tag for the current user.
 
 ### Request DTO
 
 #### CreateTagRequestDto
 
-| Field | Type   | Required | Validation                                           |
-| ----- | ------ | -------- | ---------------------------------------------------- |
-| name  | string | Yes      | min length 1; max length 50; unique per user (BR-19) |
-| color | string | No       | max length 16                                        |
+| Field | Type   | Required | Validation                                   |
+| ----- | ------ | -------- | -------------------------------------------- |
+| name  | string | Yes      | min length 1; max length 50; unique per user |
+| color | string | No       | hex color; max length 16                     |
 
 ### Response DTO
 
 #### TagResponseDto
 
-| Field     | Type                | Description        |
-| --------- | ------------------- | ------------------ |
-| id        | uuid string         | Tag identifier     |
-| name      | string              | Tag name           |
-| color     | string nullable     | Tag color          |
-| createdAt | ISO datetime string | Creation timestamp |
+| Field | Type            | Description    |
+| ----- | --------------- | -------------- |
+| id    | uuid string     | Tag identifier |
+| name  | string          | Tag name       |
+| color | string nullable | Tag color      |
 
 ### Business Rules Mapping
 
-- BR-19: user can define tags; uniqueness per user.
-- BR-5: user can manage only own tags.
+- BR-19: tag names must be unique per user.
+- BR-5: users can manage only their own tags.
 
 ### Error Cases
 
-- 400 Bad Request: invalid name/color.
+- 400 Bad Request: invalid name or color.
 - 401 Unauthorized: missing or invalid JWT.
-- 409 Conflict: duplicate tag name for user.
+- 409 Conflict: duplicate tag name for the user.
 
 ## Endpoint 2: List Tags
 
@@ -56,7 +55,7 @@
 
 - Method: GET
 - URL: /tags
-- Description: List all tags for current user.
+- Description: List all tags for the current user.
 
 ### Request DTO
 
@@ -64,7 +63,7 @@
 
 ### Response DTO
 
-#### TagListResponseDto
+#### TagResponseDto[]
 
 | Field | Type             | Description |
 | ----- | ---------------- | ----------- |
@@ -72,178 +71,129 @@
 
 ### Business Rules Mapping
 
-- BR-5: only requesting user tags returned.
+- BR-5: only the requesting user's tags are returned.
 
 ### Error Cases
 
 - 401 Unauthorized: missing or invalid JWT.
 
-## Endpoint 3: Update Tag
+## Endpoint 3: Get Tag By Id
+
+### Endpoint
+
+- Method: GET
+- URL: /tags/:id
+- Description: Retrieve a single tag by id.
+
+### Request DTO
+
+#### TagIdParamsDto
+
+| Field | Type        | Required | Validation    |
+| ----- | ----------- | -------- | ------------- |
+| id    | uuid string | Yes      | valid UUID v4 |
+
+### Response DTO
+
+#### TagResponseDto
+
+| Field | Type            | Description    |
+| ----- | --------------- | -------------- |
+| id    | uuid string     | Tag identifier |
+| name  | string          | Tag name       |
+| color | string nullable | Tag color      |
+
+### Business Rules Mapping
+
+- BR-5: ownership is enforced by user id.
+
+### Error Cases
+
+- 401 Unauthorized: missing or invalid JWT.
+- 404 Not Found: tag not found for the user.
+
+## Endpoint 4: Update Tag
 
 ### Endpoint
 
 - Method: PATCH
 - URL: /tags/:id
-- Description: Update tag name or color.
+- Description: Update a tag name or color.
 
 ### Request DTO
 
-#### UpdateTagParamsDto
+#### TagIdParamsDto
 
-| Field | Type        | Required | Validation     |
-| ----- | ----------- | -------- | -------------- |
-| id    | uuid string | Yes      | valid tag UUID |
+| Field | Type        | Required | Validation    |
+| ----- | ----------- | -------- | ------------- |
+| id    | uuid string | Yes      | valid UUID v4 |
 
 #### UpdateTagRequestDto
 
 | Field | Type   | Required | Validation                                   |
 | ----- | ------ | -------- | -------------------------------------------- |
 | name  | string | No       | min length 1; max length 50; unique per user |
-| color | string | No       | max length 16                                |
+| color | string | No       | hex color; max length 16                     |
 
 ### Response DTO
 
 #### TagResponseDto
 
-| Field     | Type                | Description      |
-| --------- | ------------------- | ---------------- |
-| id        | uuid string         | Tag identifier   |
-| name      | string              | Updated name     |
-| color     | string nullable     | Updated color    |
-| updatedAt | ISO datetime string | Update timestamp |
+| Field | Type            | Description    |
+| ----- | --------------- | -------------- |
+| id    | uuid string     | Tag identifier |
+| name  | string          | Updated name   |
+| color | string nullable | Updated color  |
 
 ### Business Rules Mapping
 
-- BR-19: uniqueness per user preserved after rename.
-- BR-5: owner-only mutation.
+- BR-19: uniqueness per user is preserved after update.
+- BR-5: only the owner can update the tag.
 
 ### Error Cases
 
 - 400 Bad Request: invalid payload.
 - 401 Unauthorized: missing or invalid JWT.
-- 404 Not Found: tag not found for user.
+- 404 Not Found: tag not found for the user.
 - 409 Conflict: duplicate tag name after update.
 
-## Endpoint 4: Delete Tag
+## Endpoint 5: Delete Tag
 
 ### Endpoint
 
 - Method: DELETE
 - URL: /tags/:id
-- Description: Delete tag and remove tag links from appointments.
+- Description: Delete a tag.
 
 ### Request DTO
 
-#### DeleteTagParamsDto
+#### TagIdParamsDto
 
-| Field | Type        | Required | Validation     |
-| ----- | ----------- | -------- | -------------- |
-| id    | uuid string | Yes      | valid tag UUID |
+| Field | Type        | Required | Validation    |
+| ----- | ----------- | -------- | ------------- |
+| id    | uuid string | Yes      | valid UUID v4 |
 
 ### Response DTO
 
 #### DeleteTagResponseDto
 
-| Field     | Type        | Description     |
-| --------- | ----------- | --------------- |
-| success   | boolean     | Deletion result |
-| deletedId | uuid string | Deleted tag id  |
+| Field   | Type   | Description             |
+| ------- | ------ | ----------------------- |
+| message | string | Deletion status message |
 
 ### Business Rules Mapping
 
-- BR-19: tag management by owner.
-- BR-20: many-to-many links removed from appointment_tags.
-- BR-5: owner-only deletion.
+- BR-19: tag management is owner-scoped.
+- BR-20: deleting a tag removes its series-tag links through cascade.
+- BR-5: only the owner can delete the tag.
 
 ### Error Cases
 
-- 400 Bad Request: invalid id.
 - 401 Unauthorized: missing or invalid JWT.
-- 404 Not Found: tag not found for user.
-
-## ⚠️ Deprecated Endpoints
-
-The following endpoint has been **removed** from implementation:
-
-- ~~POST /appointments/:id/tags~~ → Tag assignment should be managed via series-level tag operations
+- 404 Not Found: tag not found for the user.
 
 ## Self Review
 
-- Tag management use-cases UC-14 and search UC-13 are covered (tag creation, listing, update, deletion).
-- PATCH method used for tag updates (instead of PUT).
-- Deprecated endpoints clearly marked.
-- No duplicated endpoints in this feature contract.
-- Validation constraints map to business rules.
-- Naming convention is consistent.
-- No internal-only database fields are exposed.
-
-### Error Cases
-
-- 400 Bad Request: invalid appointment id or tagIds.
-- 401 Unauthorized: missing or invalid JWT.
-- 404 Not Found: appointment or tags not found for user.
-- 409 Conflict: duplicate appointment-tag pair.
-
-## Endpoint 6: Search and Filter Appointments
-
-### Endpoint
-
-- Method: GET
-- URL: /appointments
-- Description: Search and filter appointments by keyword/date/tag/status.
-
-### Request DTO
-
-#### SearchAppointmentsQueryDto
-
-| Field     | Type                | Required | Validation                                       |
-| --------- | ------------------- | -------- | ------------------------------------------------ |
-| query     | string              | No       | max length 255; applied to title and description |
-| startDate | ISO datetime string | No       | must be <= endDate if both provided              |
-| endDate   | ISO datetime string | No       | must be >= startDate if both provided            |
-| tagId     | uuid string         | No       | must belong to current user                      |
-| status    | enum string         | No       | SCHEDULED, COMPLETED, CANCELLED, MISSED          |
-| page      | number              | No       | integer >= 1; default 1                          |
-| limit     | number              | No       | integer 1..100; default 10                       |
-
-### Response DTO
-
-#### SearchAppointmentsResponseDto
-
-| Field | Type                       | Description            |
-| ----- | -------------------------- | ---------------------- |
-| items | AppointmentSearchItemDto[] | Filtered appointments  |
-| page  | number                     | Current page           |
-| limit | number                     | Page size              |
-| total | number                     | Total filtered records |
-
-#### AppointmentSearchItemDto
-
-| Field       | Type                | Description             |
-| ----------- | ------------------- | ----------------------- |
-| id          | uuid string         | Appointment identifier  |
-| title       | string              | Appointment title       |
-| description | string nullable     | Appointment description |
-| startTime   | ISO datetime string | Start time              |
-| endTime     | ISO datetime string | End time                |
-| status      | enum                | Appointment status      |
-| tags        | TagResponseDto[]    | Assigned tags           |
-
-### Business Rules Mapping
-
-- BR-27: supports filtering by date range, tag, and status.
-- SRS requirement: search includes title/description keyword matching.
-- BR-5: query constrained to current user data.
-
-### Error Cases
-
-- 400 Bad Request: invalid filter values or date range.
-- 401 Unauthorized: missing or invalid JWT.
-
-## Self Review
-
-- UC-14 and UC-13 are fully covered.
-- No endpoint duplication inside this feature file.
-- Validation constraints map to BR-5/19/20/27.
-- Naming is consistent with global DTO convention.
-- Internal DB fields are not exposed.
+- This contract matches the current TagController surface.
+- No appointment-tag assignment endpoint is documented because the backend does not expose one.
+- Response shapes follow the repository DTOs.

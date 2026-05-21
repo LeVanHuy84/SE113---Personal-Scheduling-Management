@@ -3,184 +3,136 @@
 ## Feature
 
 - Name: notification
-- Primary module: Notification
-- Related entities: Notification
+- Primary module: NotificationService
+- Related entities: Notification, UserDevice, Appointment, TeamInvitation, TeamAppointment
+- Scope: internal service contract only; no public HTTP controller exists in the current backend
 
 ## Related Use-cases
 
 - UC-17: View notification history
-- UC-20: Reminder-triggered notification logging (producer side)
+- UC-20: Reminder-triggered notification logging
 
-## Endpoint 1: Get Notification History
-
-### Endpoint
-
-- Method: GET
-- URL: /users/me/notifications
-- Description: Retrieve notification history for current user.
-
-### Request DTO
-
-#### GetNotificationsQueryDto
-
-| Field  | Type        | Required | Validation                 |
-| ------ | ----------- | -------- | -------------------------- |
-| page   | number      | No       | integer >= 1; default 1    |
-| limit  | number      | No       | integer 1..100; default 20 |
-| isRead | boolean     | No       | optional read-state filter |
-| type   | enum string | No       | REMINDER or SYSTEM         |
-
-### Response DTO
-
-#### NotificationResponseDto
-
-| Field         | Type                         | Description             |
-| ------------- | ---------------------------- | ----------------------- |
-| id            | uuid string                  | Notification identifier |
-| appointmentId | uuid string nullable         | Related appointment id  |
-| reminderId    | uuid string nullable         | Related reminder id     |
-| type          | enum                         | REMINDER, SYSTEM        |
-| message       | string                       | Notification content    |
-| scheduledAt   | ISO datetime string          | Scheduled trigger time  |
-| triggeredAt   | ISO datetime string nullable | Actual trigger time     |
-| readAt        | ISO datetime string nullable | Read timestamp          |
-| createdAt     | ISO datetime string          | Creation timestamp      |
-
-#### NotificationListResponseDto
-
-| Field       | Type                      | Description                |
-| ----------- | ------------------------- | -------------------------- |
-| items       | NotificationResponseDto[] | Paged notification records |
-| page        | number                    | Current page               |
-| limit       | number                    | Page size                  |
-| total       | number                    | Total notification count   |
-| unreadCount | number                    | Unread notifications count |
-
-### Business Rules Mapping
-
-- BR-25: in-app notifications are persisted in notification log.
-- BR-26: users can view notification history.
-- BR-5 and domain invariant: notification access is owner-scoped.
-
-### Error Cases
-
-- 400 Bad Request: invalid query parameters.
-- 401 Unauthorized: missing or invalid JWT.
-
-## Endpoint 2: Mark Single Notification as Read
-
-### Endpoint
-
-- Method: PATCH
-- URL: /users/me/notifications/:id
-- Description: Mark one notification as read for current user.
-
-### Request DTO
-
-#### MarkNotificationReadParamsDto
-
-| Field | Type        | Required | Validation              |
-| ----- | ----------- | -------- | ----------------------- |
-| id    | uuid string | Yes      | valid notification UUID |
-
-### Response DTO
-
-#### MarkNotificationReadResponseDto
-
-| Field   | Type                | Description             |
-| ------- | ------------------- | ----------------------- |
-| id      | uuid string         | Notification identifier |
-| readAt  | ISO datetime string | Read timestamp          |
-| success | boolean             | Operation status        |
-
-### Business Rules Mapping
-
-- BR-26: notification history is user-manageable (read state).
-- BR-5/domain ownership invariant: only owner can mark read.
-
-### Error Cases
-
-- 400 Bad Request: invalid id format.
-- 401 Unauthorized: missing or invalid JWT.
-- 404 Not Found: notification not found for user.
-
-## Endpoint 3: Mark All Notifications as Read
-
-### Endpoint
-
-- Method: PATCH
-- URL: /users/me/notifications/all
-- Description: Mark all notifications as read for current user.
-
-### Request DTO
-
-- None.
-
-### Response DTO
-
-#### MarkAllNotificationsReadResponseDto
-
-| Field   | Type   | Description            |
-| ------- | ------ | ---------------------- |
-| success | boolean | Operation status      |
-| count   | number | Number of marked read |
-
-### Business Rules Mapping
-
-- BR-26: notification history is user-manageable (read state).
-- BR-5: only owner can mark read.
-
-### Error Cases
-
-- 401 Unauthorized: missing or invalid JWT.
-
-## Endpoint 4: Internal Producer Contract (Non-public API)
+## Contract 1: Persist and Dispatch Notification
 
 ### Operation
 
-- Name: CreateReminderNotificationLog
-- Trigger: reminder scheduler/worker after due reminder firing.
-- Description: Create notification history record from reminder event.
+- Name: sendAndCreateNotification
+- Description: Send a push notification to the user's registered devices and persist a notification log row.
 
 ### Input DTO
 
-#### CreateReminderNotificationInputDto
+#### SendAndCreateNotificationInput
 
-| Field         | Type                | Description          |
-| ------------- | ------------------- | -------------------- |
-| userId        | uuid string         | Notification owner   |
-| appointmentId | uuid string         | Linked appointment   |
-| reminderId    | uuid string         | Linked reminder      |
-| message       | string              | Notification message |
-| scheduledAt   | ISO datetime string | Planned trigger time |
-| triggeredAt   | ISO datetime string | Actual trigger time  |
+| Field             | Type                   | Required | Validation / Notes                                                 |
+| ----------------- | ---------------------- | -------- | ------------------------------------------------------------------ |
+| userId            | uuid string            | Yes      | notification owner                                                 |
+| actorUserId       | uuid string            | No       | optional actor reference                                           |
+| appointmentId     | uuid string            | No       | linked appointment                                                 |
+| teamInvitationId  | uuid string            | No       | linked team invitation                                             |
+| teamAppointmentId | uuid string            | No       | linked team appointment                                            |
+| type              | enum string            | Yes      | NotificationType: REMINDER, TEAM_INVITATION, TEAM_ACTIVITY, SYSTEM |
+| eventType         | enum string            | No       | NotificationEventType values from Prisma enum                      |
+| title             | string                 | No       | push title; defaults to Notification                               |
+| body              | string                 | Yes      | notification message                                               |
+| payload           | object                 | No       | persisted JSON payload                                             |
+| pushData          | record<string, string> | No       | extra push payload fields                                          |
 
 ### Output DTO
 
-#### CreateReminderNotificationResultDto
+- Promise<void>
 
-| Field     | Type                | Description             |
-| --------- | ------------------- | ----------------------- |
-| id        | uuid string         | Created notification id |
-| type      | enum                | REMINDER                |
-| createdAt | ISO datetime string | Persistence timestamp   |
+### Side Effects
+
+- Sends FCM push only when the user has registered device tokens.
+- Persists a row in the notifications table.
 
 ### Business Rules Mapping
 
-- BR-23: scheduler triggers reminder notifications.
-- BR-25: notification persisted to log.
+- BR-23: scheduler-triggered reminder notifications are produced by the system.
+- BR-25: in-app notifications are persisted in the notification log.
 
-### Error Cases
+## Contract 2: Read Notification History
 
-- RETRYABLE: transient database write failure.
-- NON_RETRYABLE: invalid foreign-key linkage to user/reminder.
+### Operation
 
-## Endpoint 5: Internal Producer Contract (Non-public API)
+- Name: getMyNotifications
+- Signature: getMyNotifications(userId: string)
+- Description: Return the notification history for a user.
+
+### Response DTO
+
+#### NotificationRecordDto
+
+| Field             | Type                         | Description                 |
+| ----------------- | ---------------------------- | --------------------------- |
+| id                | uuid string                  | Notification identifier     |
+| userId            | uuid string                  | Recipient user id           |
+| actorUserId       | uuid string nullable         | Actor user id               |
+| appointmentId     | uuid string nullable         | Related appointment id      |
+| teamInvitationId  | uuid string nullable         | Related team invitation id  |
+| teamAppointmentId | uuid string nullable         | Related team appointment id |
+| type              | enum                         | Notification type           |
+| eventType         | enum nullable                | Notification event type     |
+| title             | string nullable              | Notification title          |
+| message           | string                       | Notification content        |
+| payload           | json nullable                | Additional payload          |
+| readAt            | ISO datetime string nullable | Read timestamp              |
+| createdAt         | ISO datetime string          | Creation timestamp          |
+
+### Business Rules Mapping
+
+- BR-26: users can view their notification history.
+- Ownership is expected at the caller boundary.
+
+## Contract 3: Mark Notification As Read
+
+### Operation
+
+- Name: markAsRead
+- Signature: markAsRead(id: string, userId: string)
+- Description: Mark a notification as read.
+
+### Response DTO
+
+#### NotificationRecordDto
+
+| Field     | Type                | Description             |
+| --------- | ------------------- | ----------------------- |
+| id        | uuid string         | Notification identifier |
+| readAt    | ISO datetime string | Read timestamp          |
+| createdAt | ISO datetime string | Creation timestamp      |
+
+### Business Rules Mapping
+
+- BR-26: notification read state can be updated by the user.
+
+### Notes
+
+- The current implementation updates by notification id directly and returns the updated row.
+- The userId argument is part of the service signature, but ownership enforcement is not performed inside the service body.
+
+## Contract 4: Mark All Notifications As Read
+
+### Operation
+
+- Name: markAllAsRead
+- Signature: markAllAsRead(userId: string)
+- Description: Mark all unread notifications for a user as read.
+
+### Output DTO
+
+#### UpdateManyResultDto
+
+| Field | Type   | Description            |
+| ----- | ------ | ---------------------- |
+| count | number | Number of updated rows |
+
+### Business Rules Mapping
+
+- BR-26: bulk read-state updates are allowed.
 
 ## Self Review
 
-- UC-17 and the notification aspect of UC-20 are covered.
-- Endpoints are not duplicated in this feature contract.
-- Validation and ownership checks are explicitly defined.
-- Naming convention is consistent.
-- No internal-only database fields are exposed.
+- This file documents the actual NotificationService surface because the backend currently does not expose a notification controller.
+- The notification record shape follows the Prisma model.
+- No HTTP endpoints are invented here.
