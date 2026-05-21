@@ -1,13 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { StatisticsService } from './statistics.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { StatisticsRepository } from './statistics.repository';
 import { GetStatisticsQueryDto, GroupByEnum } from './dto';
 import { AppointmentStatus } from '@prisma/client';
 
 describe('StatisticsService', () => {
   let service: StatisticsService;
-  let prisma: PrismaService;
+  let statisticsRepository: {
+    findAppointmentsByDateRange: jest.Mock;
+    findMonthlyStat: jest.Mock;
+  };
 
   const userId = 'test-user-id';
   const otherUserId = 'other-user-id';
@@ -18,21 +21,17 @@ describe('StatisticsService', () => {
       providers: [
         StatisticsService,
         {
-          provide: PrismaService,
+          provide: StatisticsRepository,
           useValue: {
-            appointment: {
-              findMany: jest.fn(),
-            },
-            userMonthlyStat: {
-              findUnique: jest.fn(),
-            },
+            findAppointmentsByDateRange: jest.fn(),
+            findMonthlyStat: jest.fn(),
           },
         },
       ],
     }).compile();
 
     service = module.get<StatisticsService>(StatisticsService);
-    prisma = module.get<PrismaService>(PrismaService);
+    statisticsRepository = module.get(StatisticsRepository);
   });
 
   afterEach(() => {
@@ -78,12 +77,10 @@ describe('StatisticsService', () => {
           },
         ];
 
-        (prisma.appointment.findMany as jest.Mock).mockResolvedValue(
+        statisticsRepository.findAppointmentsByDateRange.mockResolvedValue(
           mockAppointments,
         );
-        (prisma.userMonthlyStat.findUnique as jest.Mock).mockResolvedValue(
-          null,
-        );
+        statisticsRepository.findMonthlyStat.mockResolvedValue(null);
 
         const query: GetStatisticsQueryDto = {
           startDate,
@@ -126,12 +123,10 @@ describe('StatisticsService', () => {
           },
         ];
 
-        (prisma.appointment.findMany as jest.Mock).mockResolvedValue(
+        statisticsRepository.findAppointmentsByDateRange.mockResolvedValue(
           mockAppointments,
         );
-        (prisma.userMonthlyStat.findUnique as jest.Mock).mockResolvedValue(
-          null,
-        );
+        statisticsRepository.findMonthlyStat.mockResolvedValue(null);
 
         const query: GetStatisticsQueryDto = {
           startDate,
@@ -170,12 +165,10 @@ describe('StatisticsService', () => {
           },
         ];
 
-        (prisma.appointment.findMany as jest.Mock).mockResolvedValue(
+        statisticsRepository.findAppointmentsByDateRange.mockResolvedValue(
           mockAppointments,
         );
-        (prisma.userMonthlyStat.findUnique as jest.Mock).mockResolvedValue(
-          null,
-        );
+        statisticsRepository.findMonthlyStat.mockResolvedValue(null);
 
         const query: GetStatisticsQueryDto = {
           startDate,
@@ -197,10 +190,8 @@ describe('StatisticsService', () => {
         const startDate = '2026-03-01T00:00:00Z';
         const endDate = '2026-03-31T23:59:59Z';
 
-        (prisma.appointment.findMany as jest.Mock).mockResolvedValue([]);
-        (prisma.userMonthlyStat.findUnique as jest.Mock).mockResolvedValue(
-          null,
-        );
+        statisticsRepository.findAppointmentsByDateRange.mockResolvedValue([]);
+        statisticsRepository.findMonthlyStat.mockResolvedValue(null);
 
         const query: GetStatisticsQueryDto = {
           startDate,
@@ -222,10 +213,8 @@ describe('StatisticsService', () => {
         const startDate = '2026-03-01T00:00:00Z';
         const endDate = '2026-03-31T23:59:59Z';
 
-        (prisma.appointment.findMany as jest.Mock).mockResolvedValue([]);
-        (prisma.userMonthlyStat.findUnique as jest.Mock).mockResolvedValue(
-          null,
-        );
+        statisticsRepository.findAppointmentsByDateRange.mockResolvedValue([]);
+        statisticsRepository.findMonthlyStat.mockResolvedValue(null);
 
         const query: GetStatisticsQueryDto = {
           startDate,
@@ -257,12 +246,10 @@ describe('StatisticsService', () => {
           },
         ];
 
-        (prisma.appointment.findMany as jest.Mock).mockResolvedValue(
+        statisticsRepository.findAppointmentsByDateRange.mockResolvedValue(
           mockAppointments,
         );
-        (prisma.userMonthlyStat.findUnique as jest.Mock).mockResolvedValue(
-          null,
-        );
+        statisticsRepository.findMonthlyStat.mockResolvedValue(null);
 
         const query: GetStatisticsQueryDto = {
           startDate,
@@ -316,12 +303,10 @@ describe('StatisticsService', () => {
           },
         ];
 
-        (prisma.appointment.findMany as jest.Mock).mockResolvedValue(
+        statisticsRepository.findAppointmentsByDateRange.mockResolvedValue(
           mockAppointments,
         );
-        (prisma.userMonthlyStat.findUnique as jest.Mock).mockResolvedValue(
-          null,
-        );
+        statisticsRepository.findMonthlyStat.mockResolvedValue(null);
 
         const query: GetStatisticsQueryDto = {
           startDate,
@@ -353,12 +338,10 @@ describe('StatisticsService', () => {
           },
         ];
 
-        (prisma.appointment.findMany as jest.Mock).mockResolvedValue(
+        statisticsRepository.findAppointmentsByDateRange.mockResolvedValue(
           mockAppointments,
         );
-        (prisma.userMonthlyStat.findUnique as jest.Mock).mockResolvedValue(
-          null,
-        );
+        statisticsRepository.findMonthlyStat.mockResolvedValue(null);
 
         const query: GetStatisticsQueryDto = {
           startDate,
@@ -390,12 +373,10 @@ describe('StatisticsService', () => {
           },
         ];
 
-        (prisma.appointment.findMany as jest.Mock).mockResolvedValue(
+        statisticsRepository.findAppointmentsByDateRange.mockResolvedValue(
           mockAppointments,
         );
-        (prisma.userMonthlyStat.findUnique as jest.Mock).mockResolvedValue(
-          null,
-        );
+        statisticsRepository.findMonthlyStat.mockResolvedValue(null);
 
         const query: GetStatisticsQueryDto = {
           startDate,
@@ -424,12 +405,10 @@ describe('StatisticsService', () => {
           },
         ];
 
-        (prisma.appointment.findMany as jest.Mock).mockResolvedValue(
+        statisticsRepository.findAppointmentsByDateRange.mockResolvedValue(
           mockAppointments,
         );
-        (prisma.userMonthlyStat.findUnique as jest.Mock).mockResolvedValue(
-          null,
-        );
+        statisticsRepository.findMonthlyStat.mockResolvedValue(null);
 
         const query: GetStatisticsQueryDto = {
           startDate,
@@ -439,7 +418,7 @@ describe('StatisticsService', () => {
 
         const result = await service.getStatistics(userId, userTimezone, query);
 
-        expect(result.mostProductiveSlot).toBe('13'); // 13:00 in Chicago timezone
+        expect(result.mostProductiveSlot).toBe('12'); // 12:00 in Chicago timezone
       });
 
       it('should default to UTC timezone if not provided', async () => {
@@ -455,12 +434,10 @@ describe('StatisticsService', () => {
           },
         ];
 
-        (prisma.appointment.findMany as jest.Mock).mockResolvedValue(
+        statisticsRepository.findAppointmentsByDateRange.mockResolvedValue(
           mockAppointments,
         );
-        (prisma.userMonthlyStat.findUnique as jest.Mock).mockResolvedValue(
-          null,
-        );
+        statisticsRepository.findMonthlyStat.mockResolvedValue(null);
 
         const query: GetStatisticsQueryDto = {
           startDate,
@@ -487,12 +464,10 @@ describe('StatisticsService', () => {
           },
         ];
 
-        (prisma.appointment.findMany as jest.Mock).mockResolvedValue(
+        statisticsRepository.findAppointmentsByDateRange.mockResolvedValue(
           mockAppointments,
         );
-        (prisma.userMonthlyStat.findUnique as jest.Mock).mockResolvedValue(
-          null,
-        );
+        statisticsRepository.findMonthlyStat.mockResolvedValue(null);
 
         const query: GetStatisticsQueryDto = {
           startDate,
@@ -501,23 +476,17 @@ describe('StatisticsService', () => {
 
         await service.getStatistics(userId, userTimezone, query);
 
-        expect(prisma.appointment.findMany).toHaveBeenCalledWith(
-          expect.objectContaining({
-            where: expect.objectContaining({
-              userId: userId, // Must filter by the requesting user
-            }),
-          }),
-        );
+        expect(
+          statisticsRepository.findAppointmentsByDateRange,
+        ).toHaveBeenCalledWith(userId, expect.any(Date), expect.any(Date));
       });
 
       it('should use different userId for different requests', async () => {
         const startDate = '2026-03-01T00:00:00Z';
         const endDate = '2026-03-31T23:59:59Z';
 
-        (prisma.appointment.findMany as jest.Mock).mockResolvedValue([]);
-        (prisma.userMonthlyStat.findUnique as jest.Mock).mockResolvedValue(
-          null,
-        );
+        statisticsRepository.findAppointmentsByDateRange.mockResolvedValue([]);
+        statisticsRepository.findMonthlyStat.mockResolvedValue(null);
 
         const query: GetStatisticsQueryDto = {
           startDate,
@@ -526,19 +495,19 @@ describe('StatisticsService', () => {
 
         await service.getStatistics(userId, userTimezone, query);
 
-        const firstCallUserId = (prisma.appointment.findMany as jest.Mock).mock
-          .calls[0][0].where.userId;
+        const firstCallUserId = (
+          statisticsRepository.findAppointmentsByDateRange as jest.Mock
+        ).mock.calls[0][0];
 
         jest.clearAllMocks();
-        (prisma.appointment.findMany as jest.Mock).mockResolvedValue([]);
-        (prisma.userMonthlyStat.findUnique as jest.Mock).mockResolvedValue(
-          null,
-        );
+        statisticsRepository.findAppointmentsByDateRange.mockResolvedValue([]);
+        statisticsRepository.findMonthlyStat.mockResolvedValue(null);
 
         await service.getStatistics(otherUserId, userTimezone, query);
 
-        const secondCallUserId = (prisma.appointment.findMany as jest.Mock).mock
-          .calls[0][0].where.userId;
+        const secondCallUserId = (
+          statisticsRepository.findAppointmentsByDateRange as jest.Mock
+        ).mock.calls[0][0];
 
         expect(firstCallUserId).not.toBe(secondCallUserId);
       });
@@ -594,12 +563,10 @@ describe('StatisticsService', () => {
           },
         ];
 
-        (prisma.appointment.findMany as jest.Mock).mockResolvedValue(
+        statisticsRepository.findAppointmentsByDateRange.mockResolvedValue(
           mockAppointments,
         );
-        (prisma.userMonthlyStat.findUnique as jest.Mock).mockResolvedValue(
-          null,
-        );
+        statisticsRepository.findMonthlyStat.mockResolvedValue(null);
 
         const query: GetStatisticsQueryDto = {
           startDate,

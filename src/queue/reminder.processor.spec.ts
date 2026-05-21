@@ -1,4 +1,4 @@
-import { NotificationType } from '@prisma/client';
+import { NotificationEventType, NotificationType } from '@prisma/client';
 import { ReminderProcessor } from './reminder.processor';
 
 describe('ReminderProcessor', () => {
@@ -78,16 +78,14 @@ describe('ReminderProcessor', () => {
     });
 
     expect(notificationService.sendAndCreateNotification).toHaveBeenCalledWith({
-      appointment: {
-        id: appointmentId,
-        userId: 'u-1',
-        startAt: new Date('2026-05-20T09:00:00.000Z'),
-      },
+      userId: 'u-1',
+      eventType: NotificationEventType.REMINDER_TRIGGERED,
+      appointmentId,
       title: 'Appointment reminder',
       body: "You have a scheduled appointment 'Weekly Planning Meeting' at 2026-05-20T09:00:00.000Z",
       type: NotificationType.REMINDER,
-      data: {
-        appointmentId,
+      payload: {
+        appointmentTitle: 'Weekly Planning Meeting',
       },
     });
   });
@@ -103,7 +101,9 @@ describe('ReminderProcessor', () => {
     ).resolves.toBeUndefined();
 
     expect(emailService.sendReminderEmail).not.toHaveBeenCalled();
-    expect(notificationService.sendAndCreateNotification).not.toHaveBeenCalled();
+    expect(
+      notificationService.sendAndCreateNotification,
+    ).not.toHaveBeenCalled();
   });
 
   it('UTCID03 should skip processing when appointment series is cancelled', async () => {
@@ -123,7 +123,9 @@ describe('ReminderProcessor', () => {
     ).resolves.toBeUndefined();
 
     expect(emailService.sendReminderEmail).not.toHaveBeenCalled();
-    expect(notificationService.sendAndCreateNotification).not.toHaveBeenCalled();
+    expect(
+      notificationService.sendAndCreateNotification,
+    ).not.toHaveBeenCalled();
   });
 
   it('UTCID04 should continue when email fails and notification succeeds', async () => {
@@ -143,7 +145,9 @@ describe('ReminderProcessor', () => {
     ).resolves.toBeUndefined();
 
     expect(emailService.sendReminderEmail).toHaveBeenCalledTimes(1);
-    expect(notificationService.sendAndCreateNotification).toHaveBeenCalledTimes(1);
+    expect(notificationService.sendAndCreateNotification).toHaveBeenCalledTimes(
+      1,
+    );
     expect(errorSpy).toHaveBeenCalled();
   });
 
@@ -166,7 +170,9 @@ describe('ReminderProcessor', () => {
     ).resolves.toBeUndefined();
 
     expect(emailService.sendReminderEmail).toHaveBeenCalledTimes(1);
-    expect(notificationService.sendAndCreateNotification).toHaveBeenCalledTimes(1);
+    expect(notificationService.sendAndCreateNotification).toHaveBeenCalledTimes(
+      1,
+    );
     expect(errorSpy).toHaveBeenCalled();
   });
 
@@ -189,7 +195,9 @@ describe('ReminderProcessor', () => {
     ).resolves.toBeUndefined();
 
     expect(emailService.sendReminderEmail).toHaveBeenCalledTimes(1);
-    expect(notificationService.sendAndCreateNotification).toHaveBeenCalledTimes(1);
+    expect(notificationService.sendAndCreateNotification).toHaveBeenCalledTimes(
+      1,
+    );
     expect(errorSpy).toHaveBeenCalledTimes(2);
   });
 });

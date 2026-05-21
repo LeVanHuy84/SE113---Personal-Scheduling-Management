@@ -160,7 +160,7 @@ describe('UserController (integration)', () => {
     });
 
     const response = await request(app.getHttpServer())
-      .get('/profile')
+      .get('/users/me')
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
@@ -177,10 +177,10 @@ describe('UserController (integration)', () => {
   });
 
   it('USER-02: returns 401 when JWT is missing or invalid', async () => {
-    await request(app.getHttpServer()).get('/profile').expect(401);
+    await request(app.getHttpServer()).get('/users/me').expect(401);
 
     await request(app.getHttpServer())
-      .get('/profile')
+      .get('/users/me')
       .set('Authorization', 'Bearer invalid-token')
       .expect(401);
   });
@@ -193,7 +193,7 @@ describe('UserController (integration)', () => {
     });
 
     const response = await request(app.getHttpServer())
-      .put('/profile')
+      .put('/users/me')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ displayName: 'New Name', timezone: 'Asia/Ho_Chi_Minh' })
       .expect(200);
@@ -226,7 +226,7 @@ describe('UserController (integration)', () => {
     });
 
     await request(app.getHttpServer())
-      .put('/profile')
+      .put('/users/me')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ timezone: 'Asia/Tokyo' })
       .expect(200);
@@ -246,7 +246,7 @@ describe('UserController (integration)', () => {
     });
 
     const response = await request(app.getHttpServer())
-      .put('/profile')
+      .put('/users/me')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ displayName: '' })
       .expect(400);
@@ -266,7 +266,7 @@ describe('UserController (integration)', () => {
     });
 
     const response = await request(app.getHttpServer())
-      .put('/profile')
+      .put('/users/me')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ timezone: 'invalid timezone' })
       .expect(400);
@@ -285,7 +285,7 @@ describe('UserController (integration)', () => {
     });
 
     const response = await request(app.getHttpServer())
-      .put('/profile')
+      .put('/users/me')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ displayName: 'New Name' })
       .expect(404);
