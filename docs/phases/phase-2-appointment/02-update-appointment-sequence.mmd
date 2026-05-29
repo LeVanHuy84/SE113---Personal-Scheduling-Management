@@ -1,0 +1,32 @@
+sequenceDiagram
+    actor User
+    participant API
+    participant Service
+    participant DB
+    participant Queue
+    participant Cron
+
+    User->>API: PATCH /appointments/:seriesId
+    API->>Service: update(dto)
+
+    alt Not found (BR-5)
+        Service-->>API: 404 NOT_FOUND
+    else Invalid time / conflict
+        Service-->>API: 400 / 409
+    else OK
+        Service->>DB: update AppointmentSeries
+
+        %% cleanup
+        Service->>DB: get future appointments
+        Service->>Queue: cancel delay jobs
+        Service->>DB: delete future appointments
+        Service->>DB: delete future reminders
+
+        Service-->>API: 200 UPDATED
+    end
+
+    %% regenerate by cron
+    Cron->>DB: get updated series
+    Cron->>Service: generate new appointments
+    Service->>DB: create Appointment + Reminder
+    Service->>Queue: add delay job

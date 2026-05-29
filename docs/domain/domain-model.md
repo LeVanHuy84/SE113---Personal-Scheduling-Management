@@ -20,7 +20,6 @@ Main concern:
 - email: string (unique)
 - passwordHash: string
 - name: string
-- avatarUrl: string
 - createdAt: timestamp
 
 ---
