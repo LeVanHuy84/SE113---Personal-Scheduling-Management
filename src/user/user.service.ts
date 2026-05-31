@@ -26,6 +26,16 @@ export class UserService {
     return user;
   }
 
+  async searchProfileByEmail(email: string): Promise<UserProfileResponseDto> {
+    const user = await this.userRepository.findProfileByEmail(email);
+
+    if (!user) {
+      throw new NotFoundException(`User with email ${email} not found`);
+    }
+
+    return user;
+  }
+
   async updateProfile(
     userId: string,
     dto: UpdateProfileRequestDto,

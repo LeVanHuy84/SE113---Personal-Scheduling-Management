@@ -1,10 +1,11 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
 import type { CurrentUserPrincipal } from 'src/auth/interfaces/current-user.interface';
 import { NotificationService } from 'src/notification/notification.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserDeviceRequestDto } from '../device/dto/user-device-request.dto';
 import { UpdateProfileRequestDto } from './dto/update-profile-request.dto';
+import { SearchUsersQueryDto } from './dto/search-users-query.dto';
 import { UserService } from './user.service';
 import { UserDeviceService } from 'src/device/user-device.service';
 
@@ -19,6 +20,11 @@ export class UserController {
   @Get('me')
   async getProfile(@CurrentUser() user: CurrentUserPrincipal) {
     return this.userService.getProfile(user.userId);
+  }
+
+  @Get('search')
+  async searchUsers(@Query() query: SearchUsersQueryDto) {
+    return this.userService.searchProfileByEmail(query.email);
   }
 
   @Put('me')

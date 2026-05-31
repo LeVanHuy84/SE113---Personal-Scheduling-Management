@@ -127,22 +127,27 @@ export class AppointmentRepository {
     return this.toDto(update);
   }
 
-  // hàm find theo query
   async findAppointments(
     query: AppointmentQueryDto,
   ): Promise<PaginationResponseDto<AppointmentResponseDto[]>> {
-    const { page = 1, limit = 10, userId } = query;
+    const { page = 1, limit = 10, userId, fromDate, toDate } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.AppointmentWhereInput = {
       userId: userId,
     };
 
+    if (fromDate || toDate) {
+      where.startAt = {};
+      if (fromDate) where.startAt.gte = new Date(fromDate);
+      if (toDate) where.startAt.lte = new Date(toDate);
+    }
+
     const [items, total] = await Promise.all([
       this.prisma.appointment.findMany({
         where,
         orderBy: {
-          createdAt: 'asc',
+          startAt: 'asc',
         },
         skip,
         take: limit,
