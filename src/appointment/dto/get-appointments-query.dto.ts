@@ -13,5 +13,9 @@ export class AppointmentQueryDto extends PaginationQuery {
   @IsOptional()
   @IsDateString()
   toDate?: string;
+
+  @IsOptional()
+  @IsUUID('4')
+  seriesId?: string;
 }
 

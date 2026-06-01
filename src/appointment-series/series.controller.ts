@@ -15,7 +15,6 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPrincipal } from '../auth/interfaces/current-user.interface';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateAppointmentSeriesRequestDto } from './dto/create-series-request.dto';
-import { DeleteAppointmentQueryDto } from './dto/delete-appointment-query.dto';
 import { GetAppointmentByIdParamsDto } from './dto/get-appointment-by-id-params.dto';
 import { AppointmentSeriesQueryDto } from './dto/get-series-query.dto';
 import { UpdateAppointmentSeriesRequestDto } from './dto/update-series-request.dto';
@@ -63,10 +62,9 @@ export class AppointmentSeriesController {
   @HttpCode(HttpStatus.OK)
   deleteAppointmentSeries(
     @Param() params: GetAppointmentByIdParamsDto,
-    @Query() query: DeleteAppointmentQueryDto,
     @CurrentUser() user: CurrentUserPrincipal,
   ) {
-    return this.seriesService.deleteAppointmentSeries(user.userId, params.id, query);
+    return this.seriesService.deleteAppointmentSeries(user.userId, params.id);
   }
 }
 

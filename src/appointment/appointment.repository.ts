@@ -15,19 +15,25 @@ export class AppointmentRepository {
     return {
       id: entity.id,
       userId: entity.userId,
-      seriesId: entity.series?.id,
-      title: entity.series?.title,
+      seriesId: entity.series?.id ?? entity.id,
+      title: entity.series?.title ?? 'Untitled Appointment',
       description: entity.series?.description ?? null,
-      startAt: entity.startsAt,
-      endAt: entity.endsAt,
+      startAt: entity.startAt,
+      endAt: entity.endAt,
       isRecurringInstance: entity.isRecurringInstance,
-      jobId: entity.jobId,
+      jobId: entity.jobId ?? null,
       status: entity.status,
       tags: (entity.series?.tags ?? []).map((t) => ({
         id: t.tag.id,
         name: t.tag.name,
         color: t.tag.color,
       })) as TagResponseDto[],
+      recurrenceType: entity.series?.recurrenceType ?? 'ONETIME',
+      weeklyDay: entity.series?.weeklyDay ?? [],
+      monthlyDay: entity.series?.monthlyDay ?? null,
+      yearlyDay: entity.series?.yearlyDay ?? null,
+      yearlyMonth: entity.series?.yearlyMonth ?? null,
+      seriesTimezone: entity.series?.seriesTimezone,
     };
   }
 
@@ -130,11 +136,12 @@ export class AppointmentRepository {
   async findAppointments(
     query: AppointmentQueryDto,
   ): Promise<PaginationResponseDto<AppointmentResponseDto[]>> {
-    const { page = 1, limit = 10, userId, fromDate, toDate } = query;
+    const { page = 1, limit = 10, userId, fromDate, toDate, seriesId } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.AppointmentWhereInput = {
       userId: userId,
+      ...(seriesId && { seriesId }),
     };
 
     if (fromDate || toDate) {
@@ -157,6 +164,7 @@ export class AppointmentRepository {
           startAt: true,
           endAt: true,
           status: true,
+          jobId: true,
           isRecurringInstance: true,
           series: {
             include: {

@@ -12,7 +12,6 @@ import { PaginationResponseDto } from 'src/common/dto/pagination.dto';
 import { APPOINTMENT_QUEUE_NAME, AppointmentJobPayload, REMINDER_QUEUE_NAME, ReminderJobPayload } from 'src/queue/queue.constants';
 import { TagRepository } from 'src/tag/tag.repository';
 import { CreateAppointmentSeriesRequestDto } from './dto/create-series-request.dto';
-import { DeleteAppointmentQueryDto } from './dto/delete-appointment-query.dto';
 import { AppointmentSeriesQueryDto } from './dto/get-series-query.dto';
 import { AppointmentSeriesResponseDto } from './dto/series-response.dto';
 import { UpdateAppointmentSeriesRequestDto } from './dto/update-series-request.dto';
@@ -107,9 +106,8 @@ export class AppointmentSeriesService {
   ): Promise<PaginationResponseDto<AppointmentSeriesResponseDto[]>> {
 
 
-    const result = this.seriesRepository.findSeries(query);
-
-    return result
+    const result = await this.seriesRepository.findSeries(query);
+    return result;
   }
 
   async updateAppointmentSeries(
@@ -123,13 +121,15 @@ export class AppointmentSeriesService {
 
 
     // check recurrence
-    const isValid = this.isValidateRecurrence({
-      recurrenceType: dto.recurrenceType,
-      weeklyDay: dto.weeklyDay,
-      monthlyDay: dto.monthlyDay,
-      yearlyDay: dto.yearlyDay,
-
-    });
+    const isValid = this.isValidateRecurrence(
+      {
+        recurrenceType: dto.recurrenceType,
+        weeklyDay: dto.weeklyDay,
+        monthlyDay: dto.monthlyDay,
+        yearlyDay: dto.yearlyDay,
+      },
+      true, // isUpdate — recurrenceType is optional on PATCH
+    );
     if (!isValid) {
       throw new BadRequestException('INVALID_RECURRENCE');
     }
@@ -141,6 +141,7 @@ export class AppointmentSeriesService {
           userId,
           dto.startAt,
           dto.endAt,
+          seriesId
         );
       if (hasConflict) throw new ConflictException('Overlapping appointment');
     }
@@ -180,7 +181,6 @@ export class AppointmentSeriesService {
   async deleteAppointmentSeries(
     userId: string,
     seriesId: string,
-    query: DeleteAppointmentQueryDto,
   ) {
     try {
       await this.seriesRepository.deleteSeries({
@@ -189,7 +189,7 @@ export class AppointmentSeriesService {
       });
       await this.cleanupFutureBySeries(userId, seriesId);
 
-      return { message: "Delete appointment series successfully!" };
+      return { success: true, message: "Delete appointment series successfully!" };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         // Record not found
@@ -219,6 +219,10 @@ export class AppointmentSeriesService {
 
     if (!isUpdate && !recurrenceType) {
       return false;
+    }
+
+    if (isUpdate && !recurrenceType) {
+      return true;
     }
 
     if (

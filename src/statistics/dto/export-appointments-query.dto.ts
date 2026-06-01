@@ -55,4 +55,13 @@ export class ExportAppointmentsQueryDto {
   @IsString()
   @MaxLength(255)
   query?: string;
+
+  /**
+   * The client's local timezone to accurately render appointment times.
+   * Optional; falls back to User profile timezone or UTC.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  timezone?: string;
 }

@@ -7,7 +7,10 @@ import {
 import { AppointmentStatus } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { PaginationResponseDto } from 'src/common/dto/pagination.dto';
-import { REMINDER_QUEUE_NAME, ReminderJobPayload } from 'src/queue/queue.constants';
+import {
+  REMINDER_QUEUE_NAME,
+  ReminderJobPayload,
+} from 'src/queue/queue.constants';
 import { AppointmentRepository } from './appointment.repository';
 import { AppointmentResponseDto } from './dto/appointment-response.dto';
 import { AppointmentQueryDto } from './dto/get-appointments-query.dto';
@@ -19,13 +22,13 @@ export class AppointmentService {
     private readonly reminderQueue: Queue<ReminderJobPayload>,
 
     private readonly appointmentRepository: AppointmentRepository,
-  ) { }
+  ) {}
 
   async getAppointments(
     query: AppointmentQueryDto,
   ): Promise<PaginationResponseDto<AppointmentResponseDto[]>> {
-    const result = this.appointmentRepository.findAppointments(query);
-    return result
+    const result = await this.appointmentRepository.findAppointments(query);
+    return result;
   }
 
   async updateAppointmentStatus(id: string, status: AppointmentStatus) {
@@ -46,25 +49,21 @@ export class AppointmentService {
       appointment.status === AppointmentStatus.MISSED
     ) {
       throw new BadRequestException(
-        `Cannot update appointment from ${appointment.status}`
+        `Cannot update appointment from ${appointment.status}`,
       );
     }
-
 
     const update = await this.appointmentRepository.update({
       where: {
         id,
       },
       data: {
-        status
-      }
-    })
+        status,
+      },
+    });
 
-    if (status === "CANCELLED" && update.jobId) {
-
+    if (status === 'CANCELLED' && update.jobId) {
       await this.reminderQueue.remove(update.jobId);
     }
   }
-
 }
-
