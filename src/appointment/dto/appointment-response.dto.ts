@@ -13,5 +13,11 @@ export class AppointmentResponseDto {
   isRecurringInstance: boolean;
   status: AppointmentStatus;
   jobId: string | null;
-  tags: TagResponseDto[]
+  tags: TagResponseDto[];
+  recurrenceType: string;
+  weeklyDay?: string[];
+  monthlyDay?: number | null;
+  yearlyDay?: number | null;
+  yearlyMonth?: number | null;
+  seriesTimezone?: string;
 }

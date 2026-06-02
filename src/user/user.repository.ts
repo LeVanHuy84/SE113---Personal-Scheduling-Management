@@ -20,6 +20,20 @@ export class UserRepository {
     });
   }
 
+  async findProfileByEmail(email: string) {
+    return this.prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+        timezone: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
   async updateProfile(
     userId: string,
     data: { displayName?: string; timezone?: string },

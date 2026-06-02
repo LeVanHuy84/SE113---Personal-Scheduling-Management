@@ -9,6 +9,7 @@ import {
   Post,
   Query,
   UseGuards,
+  Delete,
 } from '@nestjs/common';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserPrincipal } from '../auth/interfaces/current-user.interface';
@@ -30,6 +31,9 @@ import { TeamResponseDto } from './dto/team-response.dto';
 import { TeamService } from './team.service';
 import { GetMyInvitationsQueryDto } from './dto/get-my-invitations-query.dto';
 import { TeamMyInvitationItemDto } from './dto/team-my-invitation-response.dto';
+import { GetTeamMembersQueryDto } from './dto/get-team-members-query.dto';
+import { UpdateTeamRequestDto } from './dto/update-team-request.dto';
+import { RemoveTeamMemberResponseDto } from './dto/remove-team-member-response.dto';
 
 @Controller('teams')
 @UseGuards(JwtAuthGuard)
@@ -77,8 +81,9 @@ export class TeamController {
   getTeamMembers(
     @CurrentUser() user: CurrentUserPrincipal,
     @Param() params: TeamIdParamsDto,
+    @Query() query: GetTeamMembersQueryDto,
   ): Promise<TeamMemberListResponseDto> {
-    return this.teamService.getMembers(user.userId, params.teamId);
+    return this.teamService.getMembers(user.userId, params.teamId, query);
   }
 
   @Post(':teamId/invitations')
@@ -117,6 +122,15 @@ export class TeamController {
     );
   }
 
+  @Delete(':teamId')
+  @HttpCode(HttpStatus.OK)
+  deleteTeam(
+    @CurrentUser() user: CurrentUserPrincipal,
+    @Param('teamId') teamId: string,
+  ): Promise<{ message: string; data: null }> {
+    return this.teamService.deleteTeam(user.userId, teamId);
+  }
+
   @Patch(':teamId/members/:userId/role')
   @HttpCode(HttpStatus.OK)
   changeMemberRole(
@@ -140,5 +154,25 @@ export class TeamController {
     @Param() params: TeamIdParamsDto,
   ): Promise<LeaveTeamResponseDto> {
     return this.teamService.leaveTeam(user.userId, params.teamId);
+  }
+
+  @Patch(':teamId')
+  @HttpCode(HttpStatus.OK)
+  updateTeam(
+    @CurrentUser() user: CurrentUserPrincipal,
+    @Param() params: TeamIdParamsDto,
+    @Body() dto: UpdateTeamRequestDto,
+  ): Promise<TeamResponseDto> {
+    return this.teamService.updateTeam(user.userId, params.teamId, dto);
+  }
+
+  @Delete(':teamId/members/:userId')
+  @HttpCode(HttpStatus.OK)
+  removeMember(
+    @CurrentUser() user: CurrentUserPrincipal,
+    @Param('teamId') teamId: string,
+    @Param('userId') targetUserId: string,
+  ): Promise<RemoveTeamMemberResponseDto> {
+    return this.teamService.removeMember(user.userId, teamId, targetUserId);
   }
 }

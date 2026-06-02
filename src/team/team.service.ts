@@ -28,6 +28,9 @@ import { TeamRepository } from './team.repository';
 import { NotificationService } from '../notification/notification.service';
 import { GetMyInvitationsQueryDto } from './dto/get-my-invitations-query.dto';
 import { TeamMyInvitationItemDto } from './dto/team-my-invitation-response.dto';
+import { GetTeamMembersQueryDto } from './dto/get-team-members-query.dto';
+import { UpdateTeamRequestDto } from './dto/update-team-request.dto';
+import { RemoveTeamMemberResponseDto } from './dto/remove-team-member-response.dto';
 
 @Injectable()
 export class TeamService {
@@ -123,11 +126,10 @@ export class TeamService {
   async getMembers(
     userId: string,
     teamId: string,
+    query: GetTeamMembersQueryDto,
   ): Promise<TeamMemberListResponseDto> {
     await this.assertCanViewTeam(userId, teamId);
-
-    const items = await this.teamRepository.findActiveMembersByTeamId(teamId);
-    return { items };
+    return this.teamRepository.findActiveMembersByTeamId(teamId, query.page, query.limit);
   }
 
   async inviteMember(
@@ -436,6 +438,117 @@ export class TeamService {
       role: updated.role,
       updatedById: userId,
       updatedAt: updated.updatedAt,
+    };
+  }
+
+  async updateTeam(
+    userId: string,
+    teamId: string,
+    dto: UpdateTeamRequestDto,
+  ): Promise<TeamResponseDto> {
+    const team = await this.teamRepository.findTeamById(teamId);
+    if (!team) {
+      throw new NotFoundException(`Team with id ${teamId} not found`);
+    }
+
+    const callerRole = await this.getActiveRole(teamId, userId, team.ownerId);
+    if (!callerRole || callerRole !== TeamRole.OWNER) {
+      throw new ForbiddenException(
+        'Only team owner can update team details',
+      );
+    }
+
+    if (dto.name && dto.name !== team.name) {
+      const normalizedName = dto.name.trim();
+      const isDuplicate = await this.teamRepository.existsByOwnerAndName({
+        ownerId: team.ownerId,
+        name: normalizedName,
+      });
+
+      if (isDuplicate) {
+        throw new ConflictException('Team name already exists in owner scope');
+      }
+      dto.name = normalizedName;
+    }
+
+    return this.teamRepository.updateTeam({
+      teamId,
+      ...dto,
+    });
+  }
+
+  async deleteTeam(
+    userId: string,
+    teamId: string,
+  ): Promise<{ message: string; data: null }> {
+    const team = await this.teamRepository.findTeamById(teamId);
+    if (!team) {
+      throw new NotFoundException(`Team with id ${teamId} not found`);
+    }
+
+    const callerRole = await this.getActiveRole(teamId, userId, team.ownerId);
+    if (!callerRole || callerRole !== TeamRole.OWNER) {
+      throw new ForbiddenException(
+        'Only team owner can delete the team',
+      );
+    }
+
+    await this.teamRepository.deleteTeam(teamId);
+
+    return {
+      message: 'Team deleted successfully',
+      data: null,
+    };
+  }
+
+  async removeMember(
+    userId: string,
+    teamId: string,
+    targetUserId: string,
+  ): Promise<RemoveTeamMemberResponseDto> {
+    const team = await this.teamRepository.findTeamById(teamId);
+    if (!team) {
+      throw new NotFoundException(`Team with id ${teamId} not found`);
+    }
+
+    const callerRole = await this.getActiveRole(teamId, userId, team.ownerId);
+    if (
+      !callerRole ||
+      (callerRole !== TeamRole.OWNER && callerRole !== TeamRole.ADMIN)
+    ) {
+      throw new ForbiddenException(
+        'Only team owner or admin can remove members',
+      );
+    }
+
+    if (userId === targetUserId) {
+      throw new BadRequestException('Use leave team instead of remove member');
+    }
+
+    const targetMembership = await this.teamRepository.findActiveMembership({
+      teamId,
+      userId: targetUserId,
+    });
+
+    if (!targetMembership) {
+      throw new NotFoundException(
+        `Active member with id ${targetUserId} not found in team`,
+      );
+    }
+
+    if (targetMembership.role === TeamRole.OWNER) {
+      throw new ConflictException('Cannot remove another owner');
+    }
+
+    if (callerRole === TeamRole.ADMIN && targetMembership.role === TeamRole.ADMIN) {
+      throw new ForbiddenException('Admin cannot remove another admin');
+    }
+
+    await this.teamRepository.markMembershipInactive({ teamId, userId: targetUserId });
+
+    return {
+      message: 'Member removed successfully',
+      data: null,
     };
   }
 

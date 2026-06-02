@@ -98,6 +98,11 @@ export function validateEnvironment(
     validated.FRONTEND_BASE_URL = appBaseUrl;
   }
 
+  const corsAllowedOrigins = config.CORS_ALLOWED_ORIGINS;
+  if (typeof corsAllowedOrigins === 'string') {
+    validated.CORS_ALLOWED_ORIGINS = corsAllowedOrigins;
+  }
+
   const firebaseEnabledRaw = config.FIREBASE_ENABLED;
   const firebaseEnabled =
     typeof firebaseEnabledRaw === 'string' &&
