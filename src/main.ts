@@ -15,7 +15,7 @@ async function bootstrap() {
     prefix: 'v',
     defaultVersion: '1',
   });
-  app.enableCors({ origin: true, credentials: true });
+  app.enableCors({ origin: '*' });
 
   const configService = app.get(ConfigService);
   const port = Number(configService.getOrThrow<string>('PORT'));

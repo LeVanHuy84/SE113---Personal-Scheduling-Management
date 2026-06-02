@@ -69,7 +69,7 @@ export class StatisticsController {
     @Res() res: Response,
   ): Promise<void> {
     const userId = req.user.sub;
-    const userTimezone = req.user.timezone || 'UTC';
+    const userTimezone = query.timezone || req.user.timezone || 'UTC';
 
     const csvData = await this.statisticsService.exportAppointments(
       userId,

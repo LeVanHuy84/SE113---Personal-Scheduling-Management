@@ -12,7 +12,7 @@ import {
   TeamListItemDto,
   TeamListResponseDto,
 } from './dto/team-list-response.dto';
-import { TeamMemberItemDto } from './dto/team-member-list-response.dto';
+import { TeamMemberItemDto, TeamMemberListResponseDto } from './dto/team-member-list-response.dto';
 import { TeamResponseDto } from './dto/team-response.dto';
 
 @Injectable()
@@ -267,30 +267,41 @@ export class TeamRepository {
 
   async findActiveMembersByTeamId(
     teamId: string,
-  ): Promise<TeamMemberItemDto[]> {
-    const members = await this.prisma.teamMember.findMany({
-      where: {
-        teamId,
-        status: MembershipStatus.ACTIVE,
-      },
-      orderBy: {
-        joinedAt: 'asc',
-      },
-      select: {
-        userId: true,
-        role: true,
-        status: true,
-        joinedAt: true,
-        user: {
-          select: {
-            displayName: true,
-            email: true,
+    page: number,
+    limit: number,
+  ): Promise<TeamMemberListResponseDto> {
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.TeamMemberWhereInput = {
+      teamId,
+      status: MembershipStatus.ACTIVE,
+    };
+
+    const [members, total] = await Promise.all([
+      this.prisma.teamMember.findMany({
+        where,
+        orderBy: {
+          joinedAt: 'asc',
+        },
+        skip,
+        take: limit,
+        select: {
+          userId: true,
+          role: true,
+          status: true,
+          joinedAt: true,
+          user: {
+            select: {
+              displayName: true,
+              email: true,
+            },
           },
         },
-      },
-    });
+      }),
+      this.prisma.teamMember.count({ where }),
+    ]);
 
-    return members.map((member) => ({
+    const items = members.map((member) => ({
       userId: member.userId,
       displayName: member.user.displayName,
       email: member.user.email,
@@ -298,6 +309,13 @@ export class TeamRepository {
       status: member.status,
       joinedAt: member.joinedAt,
     }));
+
+    return {
+      items,
+      page,
+      limit,
+      total,
+    };
   }
 
   async userExists(userId: string): Promise<boolean> {
@@ -546,6 +564,37 @@ export class TeamRepository {
         role: true,
         status: true,
       },
+    });
+  }
+
+  async updateTeam(input: {
+    teamId: string;
+    name?: string;
+    description?: string;
+  }): Promise<TeamResponseDto> {
+    const data: Prisma.TeamUpdateInput = {};
+    if (input.name !== undefined) data.name = input.name;
+    if (input.description !== undefined) data.description = input.description;
+
+    const updated = await this.prisma.team.update({
+      where: { id: input.teamId },
+      data,
+      select: {
+        id: true,
+        ownerId: true,
+        name: true,
+        description: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return updated;
+  }
+
+  async deleteTeam(teamId: string): Promise<void> {
+    await this.prisma.team.delete({
+      where: { id: teamId },
     });
   }
 }

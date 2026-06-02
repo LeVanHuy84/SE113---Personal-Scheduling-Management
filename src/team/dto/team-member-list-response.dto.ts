@@ -11,4 +11,7 @@ export class TeamMemberItemDto {
 
 export class TeamMemberListResponseDto {
   items: TeamMemberItemDto[];
+  page: number;
+  limit: number;
+  total: number;
 }

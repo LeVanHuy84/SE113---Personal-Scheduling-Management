@@ -39,11 +39,16 @@ export class AppointmentSeriesRepository {
   async hasConflict(
     userId: string,
     start: Date,
-    end: Date
+    end: Date,
+    excludeSeriesId?: string
   ): Promise<boolean> {
     // 1️⃣ Lấy series chưa hủy của user
     const seriesList = await this.prisma.appointmentSeries.findMany({
-      where: { userId, cancelledAt: null },
+      where: { 
+        userId, 
+        cancelledAt: null,
+        ...(excludeSeriesId ? { id: { not: excludeSeriesId } } : {})
+      },
       select: {
         id: true,
         startAt: true,
@@ -142,12 +147,16 @@ export class AppointmentSeriesRepository {
   }
 
   async findSeries(query: AppointmentSeriesQueryDto): Promise<PaginationResponseDto<AppointmentSeriesResponseDto[]>> {
-    const { page = 1, limit = 10, userId } = query;
+    const { page = 1, limit = 10, userId, recurrenceType } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.AppointmentSeriesWhereInput = {
       userId: userId,
     };
+
+    if (recurrenceType) {
+      where.recurrenceType = recurrenceType;
+    }
 
     const [items, total] = await Promise.all([this.prisma.appointmentSeries.findMany({
       where,
@@ -194,14 +203,14 @@ export class AppointmentSeriesRepository {
     id: string;
     data: UpdateAppointmentSeriesRequestDto
   }): Promise<AppointmentSeriesResponseDto> {
-    const { tagIds = [], ...updateData } = input.data;
+    const { tagIds, ...updateData } = input.data;
     const updated = await this.prisma.appointmentSeries.update({
       where: {
         id: input.id,
       },
       data: {
         ...updateData,
-        tags: tagIds
+        tags: tagIds !== undefined 
           ? {
             deleteMany: {}, // xóa tất cả tag cũ nếu có tagIds mới
             create: tagIds.map(tagId => ({

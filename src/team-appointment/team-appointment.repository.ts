@@ -309,8 +309,8 @@ export class TeamAppointmentRepository {
 
     const where: Prisma.TeamAppointmentWhereInput = {
       teamId: input.teamId,
-      startAt: { lt: input.to },
-      endAt: { gt: input.from },
+        startAt: { lt: input.to },
+        endAt: { gt: input.from },
     };
 
     const [rows, total] = await Promise.all([
