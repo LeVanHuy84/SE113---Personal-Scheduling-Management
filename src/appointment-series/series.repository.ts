@@ -38,10 +38,26 @@ export class AppointmentSeriesRepository {
 
   async hasConflict(
     userId: string,
-    start: Date,
-    end: Date,
+    proposedSeries: {
+      startAt: Date;
+      endAt: Date;
+      recurrenceType: RecurrenceType;
+      weeklyDay?: Weekday[];
+      monthlyDay?: number | null;
+      yearlyDay?: number | null;
+      yearlyMonth?: number | null;
+    },
     excludeSeriesId?: string
   ): Promise<boolean> {
+    const from = proposedSeries.startAt;
+    const to = new Date(from.getTime() + 365 * 24 * 60 * 60 * 1000); // Check conflicts for up to 1 year
+    const proposedOccurrences = generateOccurrences(proposedSeries, from, to);
+    
+    if (proposedOccurrences.length === 0) return false;
+
+    // Expand search window backward by 24h to catch appointments that started before `from` but overlap
+    const searchFrom = new Date(from.getTime() - 24 * 60 * 60 * 1000); 
+
     // 1️⃣ Lấy series chưa hủy của user
     const seriesList = await this.prisma.appointmentSeries.findMany({
       where: { 
@@ -62,17 +78,40 @@ export class AppointmentSeriesRepository {
       },
     });
 
-    const from = new Date(start.getTime() - 1 * 24 * 60 * 60 * 1000); // 1 ngày trước
-    const to = new Date(end.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 ngày sau
-
     for (const series of seriesList) {
-      // 2️⃣ Generate occurrences trong khoảng start..end
-      const occurrences = generateOccurrences(series, from, to);
+      // 2️⃣ Generate occurrences trong khoảng searchFrom..to
+      const occurrences = generateOccurrences(series, searchFrom, to);
 
       // 3️⃣ Kiểm tra overlap
-      for (const occ of occurrences) {
-        if (start < occ.end && end > occ.start) {
-          return true; // xung đột
+      for (const pOcc of proposedOccurrences) {
+        for (const occ of occurrences) {
+          if (pOcc.start < occ.end && pOcc.end > occ.start) {
+            return true; // xung đột với personal appointment
+          }
+        }
+      }
+    }
+
+    // 4️⃣ Kiểm tra xung đột với Team Appointments
+    const teamAppointments = await this.prisma.teamAppointment.findMany({
+      where: {
+        status: 'SCHEDULED', // AppointmentStatus.SCHEDULED
+        startAt: { lt: to },
+        endAt: { gt: from },
+        participants: {
+          some: {
+            userId: userId,
+            participationType: 'REQUIRED', // ParticipationType.REQUIRED
+          },
+        },
+      },
+      select: { startAt: true, endAt: true },
+    });
+
+    for (const pOcc of proposedOccurrences) {
+      for (const tApp of teamAppointments) {
+        if (pOcc.start < tApp.endAt && pOcc.end > tApp.startAt) {
+          return true; // xung đột với team appointment
         }
       }
     }
@@ -197,6 +236,20 @@ export class AppointmentSeriesRepository {
     return {
       items: items.map(item => this.toDto(item)), total, page, limit
     };
+  }
+
+  async findById(id: string) {
+    return this.prisma.appointmentSeries.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        recurrenceType: true,
+        weeklyDay: true,
+        monthlyDay: true,
+        yearlyDay: true,
+        yearlyMonth: true,
+      }
+    });
   }
 
   async updateSeries(input: {

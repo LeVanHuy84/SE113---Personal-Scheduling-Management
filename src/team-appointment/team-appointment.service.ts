@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { AppointmentStatus, ParticipationType, TeamRole } from '@prisma/client';
 import { PaginationResponseDto } from 'src/common/dto/pagination.dto';
@@ -81,6 +82,10 @@ export class TeamAppointmentService {
       endAt,
       profiles: createParticipants.profiles,
     });
+
+    if (conflicts.length > 0) {
+      throw new ConflictException('Overlapping team appointment');
+    }
 
     const created = await this.teamAppointmentRepository.createTeamAppointment({
       teamId,
@@ -220,6 +225,10 @@ export class TeamAppointmentService {
       endAt: nextEndAt,
       excludeAppointmentId: appointmentId,
     });
+
+    if (conflicts.length > 0) {
+      throw new ConflictException('Overlapping team appointment');
+    }
 
     const updated = await this.teamAppointmentRepository.updateTeamAppointment({
       appointmentId,
@@ -649,6 +658,11 @@ export class TeamAppointmentService {
 
     if (startAt.getTime() >= endAt.getTime()) {
       throw new BadRequestException('startAt must be before endAt');
+    }
+
+    const durationMs = endAt.getTime() - startAt.getTime();
+    if (durationMs > 24 * 60 * 60 * 1000) {
+      throw new BadRequestException('Appointment duration cannot exceed 24 hours');
     }
   }
 

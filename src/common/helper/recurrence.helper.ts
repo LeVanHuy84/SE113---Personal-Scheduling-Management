@@ -55,7 +55,7 @@ export function generateOneTime(series: any, from: Date, to: Date): Occurrence[]
   const start = new Date(series.startAt);
   const end = new Date(series.endAt);
 
-  if (start >= from && start <= to) {
+  if (start < to && end > from) {
     return [{ start, end }];
   }
 
@@ -106,9 +106,10 @@ export function generateMonthly(series: any, from: Date, to: Date) {
     const month = cursor.getUTCMonth();
 
     const target = new Date(Date.UTC(year, month, series.monthlyDay));
+    const occ = buildOccurrence(series, target);
 
-    if (target >= from && target <= to) {
-      result.push(buildOccurrence(series, target));
+    if (occ.start < to && occ.end > from) {
+      result.push(occ);
     }
 
     cursor.setUTCMonth(cursor.getUTCMonth() + 1);
@@ -128,9 +129,10 @@ export function generateYearly(series: any, from: Date, to: Date) {
       series.yearlyMonth - 1,
       series.yearlyDay
     ));
+    const occ = buildOccurrence(series, target);
 
-    if (target >= from && target <= to) {
-      result.push(buildOccurrence(series, target));
+    if (occ.start < to && occ.end > from) {
+      result.push(occ);
     }
 
     year++;

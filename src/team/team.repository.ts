@@ -500,8 +500,19 @@ export class TeamRepository {
     userId: string;
     role: TeamRole;
   }): Promise<void> {
-    await this.prisma.teamMember.create({
-      data: {
+    await this.prisma.teamMember.upsert({
+      where: {
+        teamId_userId: {
+          teamId: input.teamId,
+          userId: input.userId,
+        },
+      },
+      update: {
+        role: input.role,
+        status: MembershipStatus.ACTIVE,
+        joinedAt: new Date(),
+      },
+      create: {
         teamId: input.teamId,
         userId: input.userId,
         role: input.role,

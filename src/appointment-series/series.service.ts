@@ -50,6 +50,14 @@ export class AppointmentSeriesService {
       throw new BadRequestException('INVALID_TIMEZONE');
     }
 
+    const startAtDate = new Date(dto.startAt);
+    const endAtDate = new Date(dto.endAt);
+    const durationMs = endAtDate.getTime() - startAtDate.getTime();
+    
+    if (durationMs > 24 * 60 * 60 * 1000) {
+      throw new BadRequestException('Appointment duration cannot exceed 24 hours');
+    }
+
     const isValid = this.isValidateRecurrence({
       recurrenceType: dto.recurrenceType,
       weeklyDay: dto.weeklyDay,
@@ -61,11 +69,17 @@ export class AppointmentSeriesService {
       throw new BadRequestException('INVALID_RECURRENCE');
     }
 
-    // check có appointment nào trung thời gian này không
     const hasConflict = await this.seriesRepository.hasConflict(
       userId,
-      dto.startAt,
-      dto.endAt,
+      {
+        startAt: new Date(dto.startAt),
+        endAt: new Date(dto.endAt),
+        recurrenceType: dto.recurrenceType as RecurrenceType,
+        weeklyDay: dto.weeklyDay as Weekday[],
+        monthlyDay: dto.monthlyDay,
+        yearlyDay: dto.yearlyDay,
+        yearlyMonth: dto.yearlyMonth,
+      }
     );
     if (hasConflict) throw new ConflictException('Overlapping appointment');
 
@@ -136,11 +150,29 @@ export class AppointmentSeriesService {
 
     // 🔹 2. Check time conflict nếu có startAt và endAt mới
     if (dto.startAt && dto.endAt) {
+      const startAtDate = new Date(dto.startAt);
+      const endAtDate = new Date(dto.endAt);
+      const durationMs = endAtDate.getTime() - startAtDate.getTime();
+      
+      if (durationMs > 24 * 60 * 60 * 1000) {
+        throw new BadRequestException('Appointment duration cannot exceed 24 hours');
+      }
+
+      const currentSeries = await this.seriesRepository.findById(seriesId);
+      if (!currentSeries) throw new NotFoundException(`Appointment series with id ${seriesId} not found`);
+      
       const hasConflict =
         await this.seriesRepository.hasConflict(
           userId,
-          dto.startAt,
-          dto.endAt,
+          {
+            startAt: new Date(dto.startAt),
+            endAt: new Date(dto.endAt),
+            recurrenceType: (dto.recurrenceType ?? currentSeries.recurrenceType) as RecurrenceType,
+            weeklyDay: (dto.weeklyDay ?? currentSeries.weeklyDay) as Weekday[],
+            monthlyDay: dto.monthlyDay ?? currentSeries.monthlyDay,
+            yearlyDay: dto.yearlyDay ?? currentSeries.yearlyDay,
+            yearlyMonth: dto.yearlyMonth ?? currentSeries.yearlyMonth,
+          },
           seriesId
         );
       if (hasConflict) throw new ConflictException('Overlapping appointment');
@@ -155,7 +187,7 @@ export class AppointmentSeriesService {
       });
 
       // 🔹 4. Cleanup các future appointments nếu cần
-      await this.cleanupFutureBySeries(userId, seriesId);
+      await this.cleanupFutureBySeries(updated, userId, seriesId);
       await this.appointmentQueue.add(APPOINTMENT_QUEUE_NAME, { data: updated }, {
         removeOnComplete: true,
         removeOnFail: false,
@@ -183,11 +215,14 @@ export class AppointmentSeriesService {
     seriesId: string,
   ) {
     try {
+      const series = await this.seriesRepository.findById(seriesId);
       await this.seriesRepository.deleteSeries({
         userId,
         seriesId,
       });
-      await this.cleanupFutureBySeries(userId, seriesId);
+      if (series) {
+        await this.cleanupFutureBySeries(series, userId, seriesId);
+      }
 
       return { success: true, message: "Delete appointment series successfully!" };
     } catch (error) {
@@ -284,14 +319,17 @@ export class AppointmentSeriesService {
   }
 
   private async cleanupFutureBySeries(
+    series: any,
     userId: string,
     seriesId: string,
   ): Promise<void> {
+    const fromDate = series.recurrenceType === 'ONETIME' ? new Date(0) : new Date();
+    
     const futureAppointments =
       await this.appointmentRepository.findFutureAppointmentsBySeries({
         userId,
         seriesId,
-        from: new Date(),
+        from: fromDate,
       });
 
     const appointmentIds = futureAppointments.map((a) => a.id);
@@ -300,7 +338,7 @@ export class AppointmentSeriesService {
     await this.appointmentRepository.deleteFutureAppointmentsBySeries({
       userId,
       seriesId,
-      from: new Date(),
+      from: fromDate,
     });
   }
 
