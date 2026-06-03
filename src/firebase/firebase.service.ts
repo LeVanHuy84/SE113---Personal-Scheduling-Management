@@ -47,7 +47,7 @@ export class FirebaseService {
       return;
     }
 
-    await getMessaging(app).sendEachForMulticast({
+    const response = await getMessaging(app).sendEachForMulticast({
       tokens: input.tokens,
       notification: {
         title: input.title,
@@ -55,5 +55,15 @@ export class FirebaseService {
       },
       data: input.data,
     });
+    
+    this.logger.log(`Firebase push sent: ${response.successCount} successful, ${response.failureCount} failed for ${input.tokens} devices`);
+    
+    if (response.failureCount > 0) {
+      response.responses.forEach((resp, idx) => {
+        if (!resp.success) {
+          this.logger.error(`Failed to send to token ${input.tokens[idx]}:`, resp.error);
+        }
+      });
+    }
   }
 }

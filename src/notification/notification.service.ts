@@ -44,12 +44,18 @@ export class NotificationService {
     const devices = await this.userDeviceService.getUserDevices(userId);
     const tokens = devices.map((d) => d.fcmToken).filter(Boolean);
 
-    const pushPayload = {
-      appointmentId,
-      teamInvitationId,
-      teamAppointmentId,
-      ...pushData,
-    } as Record<string, string>;
+    const pushPayload: Record<string, string> = {};
+    if (appointmentId) pushPayload.appointmentId = String(appointmentId);
+    if (teamInvitationId) pushPayload.teamInvitationId = String(teamInvitationId);
+    if (teamAppointmentId) pushPayload.teamAppointmentId = String(teamAppointmentId);
+    
+    if (pushData) {
+      for (const [k, v] of Object.entries(pushData)) {
+        if (v !== undefined && v !== null) {
+          pushPayload[k] = String(v);
+        }
+      }
+    }
 
     // 2. push + persist
     const ops = [] as Promise<any>[];
@@ -61,7 +67,9 @@ export class NotificationService {
           title: title ?? 'Notification',
           body,
           data: pushPayload,
-        }),
+        }).catch(err => {
+          console.error('Firebase push notification failed:', err);
+        })
       );
     }
 
